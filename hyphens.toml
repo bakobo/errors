@@ -10,17 +10,12 @@
 # This file's real job is not to permit things. It is to make hyphenating deliberate: nobody adds a
 # line here without noticing they are adding it.
 #
-# Written 2026-08-06. Four entries drafted by hand were deleted before this file was first
-# committed, because the check disproved them: trans-aid and deleg-aid share `aid`, which can have
-# more than one problem, so they are a family (e.feature.unsupported.aid.trans.f); and
-# duplicate-key and covered-comp both name a thing that already stands as its own level elsewhere.
-# Hand judgment got four of twelve wrong, which is the argument for the check.
+# Written 2026-08-06, against the corpus after the re-mint. Twelve entries were drafted by hand
+# before the check ran and before the codes were read; nine of them were wrong. trans-aid and
+# deleg-aid share `aid`, which can be unsupported in more than one way. duplicate-key, covered-comp
+# and trusted-time are adjective-noun, so the noun is the subject and the hyphen was hiding it.
+# time-addressing, malformed-answer, ambiguous-result and fold-disagrees each named a thing that
+# turned out to have more than one possible problem once its title was read. Two survive.
 
-"time-addressing" = "Addressing something by time: one capability. `time` is not a thing here with problems of its own."
-"trusted-time" = "Trusted time as a single notion — what a source either provides or does not."
-"not-an-object" = "A phrase describing the value that arrived. No containment in it at all."
-"not-a-mapping" = "A phrase describing the value that arrived, like not-an-object."
-"second-writer" = "A phrase naming who the other party was, not a writer whose problem is `second`."
-"malformed-answer" = "A phrase describing the answer received; the answer has no parts in this model."
-"ambiguous-result" = "A phrase describing the result reached, not a result with a sub-problem."
-"fold-disagrees" = "A phrase naming what happened — the fold disagreed — rather than a part of a fold."
+"not-an-object" = "A phrase describing the value that arrived, in the sense of the JSON type it was not. There is no `not` for `an-object` to hang beneath."
+"second-writer" = "A phrase naming who the other party was, under e.state.conflict.record. — not a writer whose problem is `second`."

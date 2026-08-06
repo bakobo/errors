@@ -87,8 +87,9 @@ def test_a_finding_names_the_code_and_proposes_the_repair():
 
 def test_the_suggestion_says_how_to_invert_it_rather_than_pretending_to_be_a_ruling():
     (found,) = check(["e.proof.sig.f", "e.proof.event-sig.f"])
-    assert "invert it" in str(found)
+    assert "Invert it" in str(found)
     assert "'sig'" in str(found)
+    assert "covered component" in str(found)
 
 
 def test_a_repair_for_a_left_shared_half_keeps_the_order():

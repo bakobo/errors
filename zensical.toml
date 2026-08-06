@@ -1,0 +1,59 @@
+[project]
+site_url = "https://errors.bakobo.com/"
+site_name = "Bakobo error codes"
+site_description = "Every error code Bakobo defines, generated from the registries in source."
+site_author = "Bakobo"
+copyright = "Copyright &copy; 2026 Bakobo LLC"
+
+# Every page is generated from the registries; nothing under docs_dir is hand-written, which is why
+# it is a build directory rather than a tracked one. `bakobo-errors pages` fills it.
+docs_dir = "build/docs"
+site_dir = "site"
+
+extra_css = ["assets/brand.css"]
+
+# The nav names only the entrance. The ~65 code pages and the prefix pages above them are generated,
+# reached from the home page and from search, and listing them here would be a second index to keep
+# in step with the first.
+nav = [
+  { "Every code" = "index.md" },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "content.code.copy",
+  "navigation.instant",
+  "navigation.top",
+  "search.highlight",
+  "toc.follow",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+md_in_html = {}
+tables = {}
+toc = { permalink = true }
+pymdownx.details = {}
+pymdownx.highlight = { anchor_linenums = true, pygments_lang_class = true }
+pymdownx.inlinehilite = {}
+pymdownx.superfences = {}

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://errors.bakobo.com/sitemap.xml

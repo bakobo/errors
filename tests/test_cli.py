@@ -121,6 +121,55 @@ def test_check_validates_without_writing_anything(corpus):
     assert not (corpus / "index.json").exists()
 
 
+def pages(corpus):
+    return main([
+        "pages",
+        "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+        "--out", str(corpus / "build" / "docs"),
+        "--static", str(corpus / "static"),
+    ])
+
+
+def test_pages_writes_a_page_for_every_code_and_the_pages_above_it(corpus):
+    assert pages(corpus) == 0
+    written = {path.name for path in (corpus / "build" / "docs").iterdir()}
+    assert "e.input.missing.sig.f.md" in written
+    assert "e.input.missing..md" in written
+    assert {"index.md", "404.md", "catalog.json"} <= written
+
+
+def test_pages_copies_hand_written_static_files_in_alongside(corpus):
+    (corpus / "static" / "assets").mkdir(parents=True)
+    (corpus / "static" / "CNAME").write_text("errors.example.com\n")
+    (corpus / "static" / "assets" / "brand.css").write_text("/* brand */\n")
+    assert pages(corpus) == 0
+    assert (corpus / "build" / "docs" / "CNAME").read_text() == "errors.example.com\n"
+    assert (corpus / "build" / "docs" / "assets" / "brand.css").exists()
+
+
+def test_a_rebuild_removes_the_page_of_a_code_that_was_retired(corpus):
+    assert pages(corpus) == 0
+    stale = corpus / "build" / "docs" / "e.party.gone.f.md"
+    stale.write_text("# a code that no longer exists")
+    assert pages(corpus) == 0
+    assert not stale.exists()
+
+
+def test_finalize_promotes_the_built_404_over_the_renderers_stock_one(tmp_path):
+    built = tmp_path / "site"
+    (built / "404").mkdir(parents=True)
+    (built / "404" / "index.html").write_text("<h1>How to read a code</h1>")
+    (built / "404.html").write_text("<h1>404 - Not found</h1>")
+    assert main(["finalize", "--site", str(built)]) == 0
+    assert (built / "404.html").read_text() == "<h1>How to read a code</h1>"
+
+
+def test_finalize_fails_rather_than_silently_leaving_the_stock_404(tmp_path, capsys):
+    assert main(["finalize", "--site", str(tmp_path / "site")]) == 1
+    assert "build the site first" in capsys.readouterr().err
+
+
 def test_check_fails_on_the_same_things_index_does(corpus):
     (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(UNREADABLE)
     assert main([

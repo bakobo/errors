@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .catalog import build_index, collisions
 from .corpus import extract_repo, read_corpus
+from .hyphens import suspicions
 from .reconcile import disagreements, parse_standard
 from .site import render
 
@@ -130,10 +131,15 @@ def main(argv=None) -> int:
     for collision in reported:
         print(collision, file=sys.stderr if collision.fatal else sys.stdout)
 
-    if problems or any(collision.fatal for collision in reported):
+    hyphenated = suspicions(entries)
+    for suspicion in hyphenated:
+        print(f"[{suspicion.confidence}] {suspicion}", file=sys.stderr)
+
+    if problems or hyphenated or any(collision.fatal for collision in reported):
         print(
-            f"Refused to publish: {len(problems)} unreadable declaration(s) and "
-            f"{sum(c.fatal for c in reported)} collision(s).",
+            f"Refused to publish: {len(problems)} unreadable declaration(s), "
+            f"{sum(c.fatal for c in reported)} collision(s), and {len(hyphenated)} hyphenated "
+            f"leaf/leaves that look like a deleted level.",
             file=sys.stderr,
         )
         return 1

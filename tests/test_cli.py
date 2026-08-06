@@ -170,6 +170,27 @@ def test_finalize_fails_rather_than_silently_leaving_the_stock_404(tmp_path, cap
     assert "build the site first" in capsys.readouterr().err
 
 
+def test_reconcile_passes_against_the_real_standard(tmp_path, standard_text):
+    standard = tmp_path / "error-codes.md"
+    standard.write_text(standard_text)
+    assert main(["reconcile", "--standard", str(standard)]) == 0
+
+
+def test_reconcile_fails_when_the_standard_and_the_data_have_drifted(tmp_path, standard_text,
+                                                                     capsys):
+    standard = tmp_path / "error-codes.md"
+    standard.write_text(standard_text.replace("| `rule` |", "| `norm` |"))
+    assert main(["reconcile", "--standard", str(standard)]) == 1
+    reported = capsys.readouterr().err
+    assert "norm" in reported
+    assert "rule" in reported
+
+
+def test_reconcile_fails_rather_than_passing_when_the_standard_is_absent(tmp_path, capsys):
+    assert main(["reconcile", "--standard", str(tmp_path / "nowhere.md")]) == 1
+    assert "no standard" in capsys.readouterr().err
+
+
 def test_check_fails_on_the_same_things_index_does(corpus):
     (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(UNREADABLE)
     assert main([

@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .catalog import build_index, collisions
 from .corpus import extract_repo, read_corpus
+from .reconcile import disagreements, parse_standard
 from .site import render
 
 HERE = Path(__file__).resolve().parents[3]
@@ -32,11 +33,19 @@ def _parser() -> argparse.ArgumentParser:
         ("check", "extract every registry and report, writing nothing"),
         ("pages", "extract every registry and write the markdown the site is built from"),
         ("finalize", "put the built site's own 404 page where a web server will look for it"),
+        ("reconcile", "check the taxonomy data against the table in the standard"),
     ]:
         command = commands.add_parser(name, help=help_text)
         if name == "finalize":
             command.add_argument("--site", default=HERE / "site", type=Path,
                                  help="the built site")
+            continue
+        if name == "reconcile":
+            command.add_argument(
+                "--standard", type=Path,
+                default=HERE.parent / "dev" / "standards" / "error-codes.md",
+                help="the standard whose taxonomy table the data must match",
+            )
             continue
         command.add_argument("--corpus", default=HERE / "corpus.toml", type=Path,
                              help="the manifest naming the repos to read")
@@ -71,11 +80,36 @@ def _finalize(site: Path) -> int:
     return 0
 
 
+def _reconcile(standard: Path) -> int:
+    """Fail if the taxonomy data and the standard's table have drifted apart."""
+    if not standard.is_file():
+        print(
+            f"There is no standard at {standard}. Check out bakobo/dev beside this repo, or pass "
+            f"--standard.",
+            file=sys.stderr,
+        )
+        return 1
+    found = disagreements(parse_standard(standard.read_text()))
+    for line in found:
+        print(line, file=sys.stderr)
+    if found:
+        print(
+            "The standard is right and taxonomy.py is the defect; adding a first descriptor is a "
+            "change to the standard, not to a data file.",
+            file=sys.stderr,
+        )
+        return 1
+    print(f"The taxonomy data matches {standard}.")
+    return 0
+
+
 def main(argv=None) -> int:
     """Build or check the catalog; return the process exit status."""
     options = _parser().parse_args(argv)
     if options.command == "finalize":
         return _finalize(options.site)
+    if options.command == "reconcile":
+        return _reconcile(options.standard)
 
     entries, problems = [], []
     for repo in read_corpus(options.corpus):

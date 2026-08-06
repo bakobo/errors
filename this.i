@@ -129,6 +129,19 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         work. Chose failing on differing titles over failing on any repeated code, because two repos
         importing or restating the same entry with the same title is agreement, not collision, and a
         check that cannot tell those apart gets suppressed.
+      children:
+
+        Args divergence is fatal too; detail and hint divergence is reported = decision:
+          id: wklkoj
+          why: >
+            The commission named titles. Args belong with them: error-codes.md says a code's args
+            signature never changes once shipped, and args travel positionally on the wire, so two
+            declarations of one code with different args produce a problem+json body whose values
+            mean different things by position — a wire defect, not a wording defect. Chose to leave
+            detail and hint non-fatal because they are prose that two repos may reasonably word
+            differently while agreeing completely, and a check that fails on rewording is a check
+            that gets suppressed. Tradeoff: prose drift between two declarations of one code is
+            reported and can be ignored, so it can persist.
 
     The published URL is frozen at https://errors.bakobo.com/<code> = ++frozen-url constraint:
       id: 6h5db4

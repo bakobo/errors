@@ -1,35 +1,18 @@
-## Starting a repo from this template
+## What this repo is
 
-*This section documents bootstrapping a **new** repo from `bakobo/template`. Once your repo is set
-up, delete this section — like the Testing/CI/README stanzas below, it is self-removing.* Two ways
-to start; both end at the same per-clone setup.
+`bakobo/errors` holds two things that must not be confused. The **package** — `src/bakobo/errors/`,
+imported as `bakobo.errors` — is the shared error-code machinery every Bakobo repo depends on, so a
+change to it is a change to how the whole org raises errors. The **catalog** is everything else:
+the extractor, the corpus manifest, the site, and what they publish at errors.bakobo.com.
 
-**A. Canonical — GitHub template (preferred).** Create the repo straight from the template so the
-scaffolding arrives automatically:
+The catalog is a **projection of the registries in source**, never a source itself. Nothing here is
+ever on a request path, no read API over the index exists or should be added, and where the catalog
+and the code that raises disagree, the code is right. Read `this.i` before designing; @tjs63f and
+@vnu3rr are the nodes that rule on this.
 
-```sh
-gh repo create bakobo/<name> --template bakobo/template --private
-```
-
-**B. Vendor into an existing / hand-made repo.** When the target repo already exists (you ran
-`git init` yourself, or you are retrofitting an older repo), copy **only** the template's tracked
-scaffolding into it — `AGENTS.md CLAUDE.md GEMINI.md .cursorrules .gitignore this.i.seed .github/`.
-Do **not** copy `.git/` or `.tick/` (the tick ledger is per-clone; see below).
-
-**Per-clone setup (run in every fresh clone, both paths):**
-
-1. **`tick init`** — connect the clone to the task ledger (adopts the remote ledger if a colleague
-   already made one, else creates it). Not tracked on `main`; it is an orphan `tick` branch plus a
-   gitignored `.tick/` store. Once the repo has a remote, `git config tick.remote origin` and push
-   the `tick` branch so the ledger is backed up.
-2. **Intent (`this.i`).** If anyone will later need to know *why* this repo is built the way it is,
-   adopt intent: `cp this.i.seed this.i`, rewrite the root goal to this repo's real purpose (the
-   rebuttal-surface standard), give it a fresh opaque id, and delete `this.i.seed`. A pure
-   content/asset/config repo may instead just delete `this.i.seed` — its absence is the opt-out.
-3. **Docs, README, CI.** Follow the repo-layout convention — design/architecture docs under `docs/`
-   (the **Repo layout** rule in the engineering-standards block below;
-   [`dev/standards/repo-layout.md`](../dev/standards/repo-layout.md)). Add a `README.md` (fresh-clone
-   → passing tests, with a clickable CI badge) and CI once the repo gains code, per the stanzas below.
+The repo is **public** and the repos it reads are **private**, which is a deliberate tradeoff
+(@vrdqup) and a standing constraint on what generated pages may show: name the repo that declares a
+code, never its file path or line number.
 
 ## Bakobo engineering standards
 
@@ -86,29 +69,24 @@ later need to know *why*) may skip intent entirely — just delete `this.i.seed`
 
 ## Testing Protocol
 
-This repository appears to have no test suite yet. Before writing feature code
-or fixing bugs, propose an appropriate testing framework for this project type
-and add a single trivially-passing test to confirm the setup works. In the
-same commit, propose to change AGENTS.md to replace this instruction with one
-that instructs agents to follow strict TDD from now on: write failing tests
-that capture happy path and edge cases/unhappy paths for each requirement,
-observe them fail, implement until tests pass, never checkin without proving
-that all tests pass, aim for 100% of all new code, and always leave existing
-code better tested than it was before you touched it.
+Strict TDD. For each requirement, write tests that capture the happy path and the edge and unhappy
+cases, **run them and observe them fail**, then implement until they pass. The red run is not
+ceremony: it is what catches a test that is wrong about the system, as distinct from code that is
+wrong about the requirement, and skipping it defers that discovery to a point where a failure is
+ambiguous. Never check in without proving the suite passes. Aim for 100% branch coverage of new
+code, and always leave existing code better tested than you found it.
+
+The test command is `uv run pytest`; coverage is enforced at 100% and the run fails below it. The
+package is tested against Python 3.12 and 3.14 in CI, the floors of its two consumers — do not use
+syntax newer than 3.12.
+
+Two oracles here are worth more than a coverage number, because the renderer and the extractor both
+fail quietly. The generated pages link by absolute URL, which the renderer does not resolve and
+therefore does not check, so `tests/test_site.py` checks every link resolves to a page. And the
+extractor's real oracle is the corpus: `uv run bakobo-errors check` runs it against the sibling
+checkouts and must exit zero.
 
 ## CI and Documentation
-
-This repo appears to have no CI workflows yet. Until it does, any time you make
-code changes to the user, propose an appropriate set of GitHub actions (e.g.,
-`.github/workflows/ci.yml`) that builds and runs tests on every push and
-pull request. Propose to remove this instruction from AGENTS.md on the
-same commit.
-
-This repository has no README. As long is this is the case, any time you
-make code changes for the user, propose to add a `README.md` that explains how
-to get from a fresh clone to passing tests, with a clickable CI status
-badge at the top for each active workflow. Propose to remove this
-instruction from AGENTS.md on the same commit.
 
 When writing or modifying GitHub Actions workflows, always use the latest
 stable release of each action. Avoid versions pinned to Node.js 16 or

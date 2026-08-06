@@ -35,10 +35,11 @@ class Suspicion:
     repair: str
 
     def __str__(self) -> str:
+        left, right = self.token.split("-", 1)
         return (
             f"{self.code} — {self.reason} Suggested: {self.repair}, subject before predicate. "
-            f"If your callers branch on {self.token.split('-', 1)[1]!r} instead, invert it and say "
-            f"which callers drove that."
+            f"Invert it if {right!r} is the subject rather than {left!r} — it usually is when the "
+            f"left half qualifies the right, as in a delegated AID or a covered component."
         )
 
 

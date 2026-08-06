@@ -1,0 +1,26 @@
+# Hyphens that are one name rather than two levels.
+#
+# error-codes.md: a hyphen joins words into one name, a dot separates levels of meaning. The test is
+# whether the left-hand thing could have a different problem — if it could, it is a level and the
+# hyphen is a deleted one. That test needs a person, so every hyphen surviving in a Bakobo code is
+# listed here with the reason it is one concept. An entry with no justification is refused, and an
+# entry cannot excuse a hyphen the check has proven is a level — otherwise the escape hatch swallows
+# the finding.
+#
+# This file's real job is not to permit things. It is to make hyphenating deliberate: nobody adds a
+# line here without noticing they are adding it.
+#
+# Written 2026-08-06. Four entries drafted by hand were deleted before this file was first
+# committed, because the check disproved them: trans-aid and deleg-aid share `aid`, which can have
+# more than one problem, so they are a family (e.feature.unsupported.aid.trans.f); and
+# duplicate-key and covered-comp both name a thing that already stands as its own level elsewhere.
+# Hand judgment got four of twelve wrong, which is the argument for the check.
+
+"time-addressing" = "Addressing something by time: one capability. `time` is not a thing here with problems of its own."
+"trusted-time" = "Trusted time as a single notion — what a source either provides or does not."
+"not-an-object" = "A phrase describing the value that arrived. No containment in it at all."
+"not-a-mapping" = "A phrase describing the value that arrived, like not-an-object."
+"second-writer" = "A phrase naming who the other party was, not a writer whose problem is `second`."
+"malformed-answer" = "A phrase describing the answer received; the answer has no parts in this model."
+"ambiguous-result" = "A phrase describing the result reached, not a result with a sub-problem."
+"fold-disagrees" = "A phrase naming what happened — the fold disagreed — rather than a part of a fold."

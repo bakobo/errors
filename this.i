@@ -135,11 +135,12 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         are genuinely one name, and warning without a gate reproduces the state that let 64 of 107
         codes acquire the defect. The allowlist deliberately cannot excuse a proven or family
         finding, because an escape hatch that swallows the finding the check exists for is worse
-        than no check. Tradeoff: the suggested repair guesses which half is the parent by counting
-        how many codes each organises, and it is wrong perhaps one time in ten, so it is rendered as
-        a suggestion rather than a ruling. The detection is the reliable part. Evidence that the
-        check beats hand judgment: twelve allowlist entries were drafted by hand before it ran, and
-        it disproved four of them.
+        than no check. The suggested repair puts the subject first, per error-codes.md's ordering
+        rule, and says how to invert it rather than pretending to be a ruling. Counting which half
+        organises more codes was tried and rejected: it measures frequency in today's corpus rather
+        than effect on what a recipient does, which got endorsement-sig backwards. Evidence that the
+        check beats hand judgment either way: twelve allowlist entries were drafted by hand before it
+        ran, and it disproved four of them.
 
     A duplicate code whose titles differ fails the build = ++uniqueness decision:
       id: gazetr

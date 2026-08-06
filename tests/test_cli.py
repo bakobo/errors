@@ -192,6 +192,17 @@ def test_reconcile_names_every_disagreement_and_says_which_artifact_is_wrong(tmp
     assert "norm" in reported
     assert "taxonomy.py is the defect" in reported
 
+def test_a_hyphen_that_deleted_a_level_fails_the_run(corpus, capsys):
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(
+        'from bakobo.errors import ErrorCode\n'
+        'A = ErrorCode("e.state.conflict.record.f", "A record conflict.")\n'
+        'B = ErrorCode("e.state.conflict.record-head.f", "The record head moved.")\n'
+    )
+    assert run(corpus) == 1
+    reported = capsys.readouterr().err
+    assert "record-head" in reported
+    assert "e.state.conflict.record.head.f" in reported
+
 
 def test_reconcile_passes_against_the_real_standard(tmp_path, standard_text):
     standard = tmp_path / "error-codes.md"

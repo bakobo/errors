@@ -50,9 +50,20 @@ jobs:
           token: ${{ secrets.CORPUS_TOKEN }}
           persist-credentials: false
 
+      - name: Check out dev, whose standard the taxonomy data must match
+        uses: actions/checkout@v7
+        with:
+          repository: bakobo/dev
+          path: checkouts/dev
+          token: ${{ secrets.CORPUS_TOKEN }}
+          persist-credentials: false
+
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+
+      - name: Refuse to publish a taxonomy that has drifted from the standard
+        run: uv run bakobo-errors reconcile --standard checkouts/dev/standards/error-codes.md
 
       - name: Refuse to publish an unreadable registry or a collision
         run: uv run bakobo-errors check --checkouts checkouts

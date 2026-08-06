@@ -43,7 +43,10 @@ DESCRIPTORS = {
     "party": Descriptor("Another actor's conduct or choice"),
     "state": Descriptor("The condition of the target", ("conflict", "missing", "pending")),
     "env": Descriptor("A system we depend on that did not deliver"),
-    "self": Descriptor("Us — our fault, or we cannot attribute it", ("resource", "config", "corrupt")),
+    "self": Descriptor(
+        "Us — our fault, or we cannot attribute it",
+        ("resource", "config", "corrupt", "unknown"),
+    ),
     "rule": Descriptor("A norm we enforce, neither authority nor verification"),
 }
 

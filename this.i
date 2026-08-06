@@ -120,6 +120,27 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         indistinguishable from noise. Tradeoff: a repo that puts a real registry outside its globs is
         silently absent from the catalog, so the manifest is reviewed when a repo is added.
 
+    A hyphenated leaf must be justified in writing or re-minted = decision:
+      id: uf47pf
+      why: >
+        error-codes.md says a hyphen joins words into one name and a dot separates levels, so a leaf
+        whose halves stand in a containment relation is a level deleted: e.state.conflict.record.
+        gathers nothing while record-head and record-busy are two unrelated strings. The rule cannot
+        be decided mechanically — trans-aid is one concept and record-head is two — so this check
+        reports evidence at two confidences and makes the residue deliberate at a third. A half that
+        already stands as its own level is *proven*; a half shared by two or more codes is a
+        *family* whose common prefix does not work; everything else must appear in hyphens.toml with
+        a written justification, and an entry with no justification is refused. Chose the allowlist
+        over either extreme: refusing every hyphen would forbid trans-aid and not-an-object, which
+        are genuinely one name, and warning without a gate reproduces the state that let 64 of 107
+        codes acquire the defect. The allowlist deliberately cannot excuse a proven or family
+        finding, because an escape hatch that swallows the finding the check exists for is worse
+        than no check. Tradeoff: the suggested repair guesses which half is the parent by counting
+        how many codes each organises, and it is wrong perhaps one time in ten, so it is rendered as
+        a suggestion rather than a ruling. The detection is the reliable part. Evidence that the
+        check beats hand judgment: twelve allowlist entries were drafted by hand before it ran, and
+        it disproved four of them.
+
     A duplicate code whose titles differ fails the build = ++uniqueness decision:
       id: gazetr
       why: >

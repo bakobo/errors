@@ -1,0 +1,45 @@
+/* Bakobo brand tokens, mapped onto the theme's own variables.
+ *
+ * The palette values are vendored from the sibling `bakobo/brand` repo, whose
+ * `css/tokens.css` is generated from `bakobo_brand.palette` and is the source of truth. Change a
+ * colour there, not here. */
+
+:root {
+  --bk-clay: #ef8b57;
+  --bk-sand: #dec1b1;
+  --bk-umber: #705a4d;
+  --bk-blush: #fadbcb;
+  --bk-espresso: #4a2b1b;
+  --bk-ink: #44403b;
+  --bk-stone: #8c8079;
+  --bk-mist: #efe9e4;
+}
+
+[data-md-color-primary="custom"] {
+  --md-primary-fg-color: var(--bk-espresso);
+  --md-primary-fg-color--light: var(--bk-umber);
+  --md-primary-fg-color--dark: #351c10;
+  --md-primary-bg-color: var(--bk-blush);
+  --md-primary-bg-color--light: var(--bk-sand);
+}
+
+[data-md-color-accent="custom"] {
+  --md-accent-fg-color: var(--bk-clay);
+  --md-accent-fg-color--transparent: rgba(239, 139, 87, 0.1);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #17110d;
+  --md-code-bg-color: #241a14;
+}
+
+/* A code is the identity a reader came here to check, so it stays monospace and unwrapped
+ * wherever it appears — in a heading, in a table cell, or in a list of leaves. */
+h1 code,
+td code {
+  white-space: nowrap;
+}
+
+h1 code {
+  font-size: 0.85em;
+}

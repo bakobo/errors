@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import sys
 from pathlib import Path
 
 from .catalog import build_index, collisions
 from .corpus import extract_repo, read_corpus
+from .site import render
 
 HERE = Path(__file__).resolve().parents[3]
 """The repo root, when running from a source checkout."""
@@ -28,8 +30,14 @@ def _parser() -> argparse.ArgumentParser:
     for name, help_text in [
         ("index", "extract every registry into index.json"),
         ("check", "extract every registry and report, writing nothing"),
+        ("pages", "extract every registry and write the markdown the site is built from"),
+        ("finalize", "put the built site's own 404 page where a web server will look for it"),
     ]:
         command = commands.add_parser(name, help=help_text)
+        if name == "finalize":
+            command.add_argument("--site", default=HERE / "site", type=Path,
+                                 help="the built site")
+            continue
         command.add_argument("--corpus", default=HERE / "corpus.toml", type=Path,
                              help="the manifest naming the repos to read")
         command.add_argument("--checkouts", default=HERE.parent, type=Path,
@@ -37,12 +45,37 @@ def _parser() -> argparse.ArgumentParser:
         if name == "index":
             command.add_argument("--out", default=HERE / "index.json", type=Path,
                                  help="where to write the index")
+        if name == "pages":
+            command.add_argument("--out", default=HERE / "build" / "docs", type=Path,
+                                 help="the docs root to write the generated pages into")
+            command.add_argument("--static", default=HERE / "static", type=Path,
+                                 help="hand-written files copied in alongside the generated pages")
     return parser
+
+
+def _finalize(site: Path) -> int:
+    """Replace the renderer's stock 404 with the one that teaches the grammar.
+
+    Zensical renders ``404.md`` to ``404/index.html`` like any other page, and separately writes a
+    bare ``404.html`` at the root — which is the only one a web server ever serves. Someone who
+    searched for a code and landed wrong is exactly the reader the grammar lesson is for, so the
+    real page is promoted over the stock one. Its asset URLs are absolute, so it works from the
+    root unchanged.
+    """
+    rendered = site / "404" / "index.html"
+    if not rendered.is_file():
+        print(f"There is no built 404 page at {rendered}; build the site first.", file=sys.stderr)
+        return 1
+    shutil.copyfile(rendered, site / "404.html")
+    print(f"Promoted {rendered} to {site / '404.html'}.")
+    return 0
 
 
 def main(argv=None) -> int:
     """Build or check the catalog; return the process exit status."""
     options = _parser().parse_args(argv)
+    if options.command == "finalize":
+        return _finalize(options.site)
 
     entries, problems = [], []
     for repo in read_corpus(options.corpus):
@@ -76,4 +109,14 @@ def main(argv=None) -> int:
     if options.command == "index":
         options.out.write_text(json.dumps(index, indent=2, sort_keys=False) + "\n")
         print(f"Wrote {options.out}.")
+    if options.command == "pages":
+        pages = render(index)
+        if options.out.exists():
+            shutil.rmtree(options.out)
+        options.out.mkdir(parents=True)
+        if options.static.is_dir():
+            shutil.copytree(options.static, options.out, dirs_exist_ok=True)
+        for name, content in pages.items():
+            (options.out / name).write_text(content)
+        print(f"Wrote {len(pages)} pages into {options.out}.")
     return 0

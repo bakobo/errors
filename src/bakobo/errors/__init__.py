@@ -119,5 +119,9 @@ class BakoboError(Exception):
         return self.code.endswith(".r")
 
     def matches(self, pattern: str) -> bool:
-        """Test this error's code against a pattern; see :func:`matches`."""
+        """Test this error's code against a pattern; see :func:`matches`.
+
+        ~3p7x — a mistyped prefix such as ``e.stat.`` is not an error, it is a pattern that never
+        matches, and nothing says so.
+        """
         return matches(self.code, pattern)

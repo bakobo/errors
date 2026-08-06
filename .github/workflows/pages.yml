@@ -9,8 +9,9 @@ name: Pages
 # can change it is a push in heti or tefa, which is why this also runs on a schedule — a collision
 # minted elsewhere surfaces within a day rather than at the next push here.
 #
-# Adding a repo to corpus.toml means adding a checkout step below. Forgetting is not silent: the
-# extractor stops with the repo named, rather than publishing a catalog missing its codes.
+# Adding a repo to corpus.toml means adding a checkout step below (~4n6x — two edits for one
+# fact). Forgetting is not silent: the extractor stops with the repo named, rather than publishing
+# a catalog missing its codes.
 
 on:
   push:

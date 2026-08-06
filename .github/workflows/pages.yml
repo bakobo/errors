@@ -3,11 +3,16 @@ name: Pages
 # Extracts every registry in the corpus, refuses to publish a collision, and deploys the catalog to
 # errors.bakobo.com. Action versions are pinned to node24-runtime releases, verified 2026-08-06.
 #
-# The corpus repos are private, so the checkout steps need CORPUS_TOKEN — a fine-grained PAT with
-# read access to the contents of every repo named in corpus.toml. Pull requests do not run this job:
-# a fork's PR gets no secrets, and a PR here cannot change what another repo declares anyway. What
-# can change it is a push in heti or tefa, which is why this also runs on a schedule — a collision
-# minted elsewhere surfaces within a day rather than at the next push here.
+# The corpus repos are private and this one is public, so the checkouts below need a credential.
+# It comes from the Bakobo Dependency Reader App, which mints a short-lived contents:read-only token
+# scoped to named repos — the same instrument witness uses to fetch heti. A PAT would be a
+# long-lived credential needing rotation forever; an App token expires on its own. client-id is a
+# public identifier, not a credential; only the private key is secret.
+#
+# Pull requests do not run this job: a fork's PR gets no secrets, and a PR here cannot change what
+# another repo declares anyway. What can change it is a push in heti or tefa, which is why this also
+# runs on a schedule — a collision minted elsewhere surfaces within a day rather than at the next
+# push here.
 #
 # Adding a repo to corpus.toml means adding a checkout step below (~4n6x — two edits for one
 # fact). Forgetting is not silent: the extractor stops with the repo named, rather than publishing
@@ -34,13 +39,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Mint a token for the private repos the catalog reads
+        id: corpus-reader
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: Iv23liAQRlNEpCyR1RXt
+          private-key: ${{ secrets.DEP_READER_PRIVATE_KEY }}
+          owner: bakobo
+          repositories: |
+            heti
+            tefa
+            dev
+
+      # Isolates "the credential is broken" from "the catalog is broken", which the extractor alone
+      # cannot distinguish — it would just report a missing checkout.
+      - name: Verify the token reaches every repo in the corpus
+        env:
+          TOKEN: ${{ steps.corpus-reader.outputs.token }}
+        run: |
+          for repo in heti tefa dev; do
+            git ls-remote "https://x-access-token:${TOKEN}@github.com/bakobo/${repo}" HEAD \
+              > /dev/null || { echo "The App token cannot read bakobo/${repo}."; exit 1; }
+          done
 
       - name: Check out heti
         uses: actions/checkout@v7
         with:
           repository: bakobo/heti
           path: checkouts/heti
-          token: ${{ secrets.CORPUS_TOKEN }}
+          token: ${{ steps.corpus-reader.outputs.token }}
           persist-credentials: false
 
       - name: Check out tefa
@@ -48,7 +78,7 @@ jobs:
         with:
           repository: bakobo/tefa
           path: checkouts/tefa
-          token: ${{ secrets.CORPUS_TOKEN }}
+          token: ${{ steps.corpus-reader.outputs.token }}
           persist-credentials: false
 
       - name: Check out dev, whose standard the taxonomy data must match
@@ -56,7 +86,7 @@ jobs:
         with:
           repository: bakobo/dev
           path: checkouts/dev
-          token: ${{ secrets.CORPUS_TOKEN }}
+          token: ${{ steps.corpus-reader.outputs.token }}
           persist-credentials: false
 
       - uses: astral-sh/setup-uv@v7

@@ -1,0 +1,16 @@
+# The repos whose registries the catalog reads.
+#
+# A repo absent from this list is absent from the catalog, so adding one is a review step rather
+# than something that happens by accident (this.i @gvn2k2). `include` names the shipped source that
+# may hold registry entries; tests are never read, whatever a glob says, because a fixture
+# borrowing a code another repo owns would arrive as a phantom duplicate.
+
+[[repo]]
+name = "heti"
+url = "https://github.com/bakobo/heti"
+include = ["src/**/*.py"]
+
+[[repo]]
+name = "tefa"
+url = "https://github.com/bakobo/tefa"
+include = ["src/**/*.py"]

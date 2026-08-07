@@ -3,7 +3,7 @@ name = "bakobo-errors"
 version = "0.0.0"
 description = "The shared Bakobo error-code machinery, and the catalog extracted from every registry."
 readme = "README.md"
-requires-python = ">=3.12.6"
+requires-python = ">=3.14"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Bakobo" }]
 # No runtime dependencies, deliberately: heti and tefa import this on their error paths, and the

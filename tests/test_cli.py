@@ -3,13 +3,21 @@
 Its job is to fail loudly. A catalog that quietly drops an unreadable entry, or that picks one of
 two disagreeing declarations, is worse than no catalog — it disagrees with the code that raises,
 which is the thing the whole projection exists to avoid (``this.i`` @tjs63f).
+
+``reconcile`` is covered twice over, deliberately. The tests taking ``standard_text`` read the real
+``error-codes.md`` and skip where ``bakobo/dev`` is not checked out beside this repo, which is the
+case in CI; the ones taking the synthetic table do not skip anywhere. No line may be reachable only
+by a skippable test, or the 100% gate passes here and fails in CI on coverage rather than on a
+defect.
 """
 
 import json
+import textwrap
 
 import pytest
 
 from bakobo.errors.cli import main
+from test_reconcile import STANDARD as SYNTHETIC_STANDARD
 
 MANIFEST = """
 [[repo]]
@@ -168,6 +176,21 @@ def test_finalize_promotes_the_built_404_over_the_renderers_stock_one(tmp_path):
 def test_finalize_fails_rather_than_silently_leaving_the_stock_404(tmp_path, capsys):
     assert main(["finalize", "--site", str(tmp_path / "site")]) == 1
     assert "build the site first" in capsys.readouterr().err
+
+
+def test_reconcile_exits_zero_when_the_table_and_the_data_agree(tmp_path):
+    standard = tmp_path / "error-codes.md"
+    standard.write_text(textwrap.dedent(SYNTHETIC_STANDARD))
+    assert main(["reconcile", "--standard", str(standard)]) == 0
+
+
+def test_reconcile_names_every_disagreement_and_says_which_artifact_is_wrong(tmp_path, capsys):
+    standard = tmp_path / "error-codes.md"
+    standard.write_text(textwrap.dedent(SYNTHETIC_STANDARD).replace("| `rule` |", "| `norm` |"))
+    assert main(["reconcile", "--standard", str(standard)]) == 1
+    reported = capsys.readouterr().err
+    assert "norm" in reported
+    assert "taxonomy.py is the defect" in reported
 
 
 def test_reconcile_passes_against_the_real_standard(tmp_path, standard_text):

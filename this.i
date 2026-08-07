@@ -175,10 +175,16 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         mitigation is that our own contribution is markdown plus a generator, and the pages are
         regenerable against a different renderer.
 
-    The package targets Python 3.12 = constraint:
+    The package targets Python 3.14 = constraint:
       id: gjt4y3
       why: >
-        tefa requires >=3.12.6 and heti requires >=3.14. A shared package must import under the lower
-        of its consumers' floors, so the floor here is tefa's, not heti's, and no 3.13+ syntax may
-        appear. Recorded because the temptation runs the other way — this repo's own toolchain will
-        be newer, and the constraint is invisible until a consumer's CI fails.
+        A shared package must import under the lower of its consumers' floors. That floor was tefa's
+        >=3.12.6 while heti was already at >=3.14, but tefa moved to >=3.14 when it took a dependency
+        on bakobo/keripy, which requires ~=3.14.0. So the 3.12 target now has no consumer, and the CI
+        leg enforcing it was exercising an interpreter nothing in the stack runs. Chose to track
+        keripy's floor rather than hold a lower one speculatively: the whole Bakobo stack sits on
+        keri, so a floor beneath keripy's cannot be reached by anything that ships, and maintaining
+        it costs a matrix leg and a syntax ban for no reader. The constraint is still worth recording
+        because it moves with keripy, not with this repo's toolchain, and it stays invisible until a
+        consumer's CI fails. Tradeoff accepted: an outside consumer pinned below 3.14 is now excluded,
+        which is free today because there is none.

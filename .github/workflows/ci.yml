@@ -1,9 +1,9 @@
 name: CI
 
-# The package is imported by repos with different Python floors, so it is tested against both ends
-# of that range rather than against whatever this repo's toolchain happens to be: tefa requires
-# >=3.12.6 and heti requires >=3.14 (this.i @gjt4y3). Action versions are pinned to node24-runtime
-# releases, verified 2026-08-06.
+# The package must import under the floor its consumers share, which is 3.14 across the stack:
+# keripy requires ~=3.14.0 and heti and tefa both follow it (this.i @gjt4y3). The interpreter is
+# named rather than left to the runner's default, which is older than the floor. Action versions are
+# pinned to node24-runtime releases, verified 2026-08-06.
 
 on:
   push:
@@ -17,14 +17,10 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python: ["3.12", "3.14"]
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: Run the suite at 100% branch coverage
-        run: uv run --python ${{ matrix.python }} pytest
+        run: uv run --python 3.14 pytest

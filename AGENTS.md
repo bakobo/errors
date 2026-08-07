@@ -77,8 +77,8 @@ ambiguous. Never check in without proving the suite passes. Aim for 100% branch 
 code, and always leave existing code better tested than you found it.
 
 The test command is `uv run pytest`; coverage is enforced at 100% and the run fails below it. The
-package is tested against Python 3.12 and 3.14 in CI, the floors of its two consumers — do not use
-syntax newer than 3.12.
+package is tested against Python 3.14 in CI — the floor keripy sets and the whole stack follows, so
+do not use syntax newer than 3.14 (`this.i` @gjt4y3).
 
 Two oracles here are worth more than a coverage number, because the renderer and the extractor both
 fail quietly. The generated pages link by absolute URL, which the renderer does not resolve and

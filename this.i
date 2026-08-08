@@ -77,6 +77,37 @@ Publish every Bakobo error code as a catalog derived from source = goal:
             a code is a thing a *recipient* classifies and handles, and no recipient ever sees this;
             it fails in the caller's own test suite. Carried over from heti (@cohnne).
 
+    One verb per question, and a code is a path in an IS-A tree = ++selectors decision:
+      id: hf4yes
+      why: >
+        A code is a path in an IS-A tree and selecting by prefix is instanceof, which is the
+        guarantee the whole grammar exists to provide: a handler written against e.state.conflict.
+        keeps being right about leaves minted later, in repos it has never heard of. The lifted
+        matches() hid that behind one verb whose mode is inferred from the pattern's punctuation, so
+        the choice between "is this within that class" and "is this that one condition" was made by
+        a trailing dot nobody could see — and forgetting the dot silently asked the other question
+        and answered no forever (tick 3p7x). Three verbs make the question explicit at the call
+        site: is_a for an interior node, is_exactly for a leaf, is_like for a wildcard shape.
+        is_a is reflexive and punctuation-free — code == x or code startswith x + "." — so
+        is_a("e.proof.event") and is_a("e.proof.event.") ask the same thing and the footgun closes
+        by construction. It REFUSES an argument carrying a disposition, which looks pedantic and is
+        the point: nothing can ever live beneath .r, so is_a("e.env.db.timeout.r") would read as a
+        class test and behave as a leaf test, which is precisely the brittleness is_a exists to
+        prevent. Chose ValueError there over a silent exact match, on @guzldf's rule that misuse of
+        this library's own API is a programmer contract violation rather than an obstacle.
+        Wildcards get segment semantics rather than fnmatch's character semantics: * is exactly one
+        segment, ** is zero or more so e.proof.**.sig.f includes e.proof.sig.f the way gitignore's
+        a/**/b matches a/b, and both are whole segments. Rejected keeping fnmatch's sig-* form,
+        because a wildcard that reaches inside a token is what made "a hyphen forfeits a query"
+        false; forbidding it makes that claim true by construction and closes the escape hatch that
+        would let a hyphenated family survive by being globbed instead of re-minted.
+        Evidence this is not theoretical: of the sixteen patterns in the corpus, seven are prefix
+        questions wearing glob syntax (e.input.*, e.input.format.*, e.input.missing.*), written that
+        way because matches() offered one verb. Tradeoff: every call site migrates, and matches()
+        is retired rather than kept as an alias, because leaving it would leave the teaching
+        material in place — the same reason the hyphenated codes are being re-minted rather than
+        tolerated.
+
     An illegal code cannot be declared = ++refuse decision:
       id: 3fg2dn
       why: >

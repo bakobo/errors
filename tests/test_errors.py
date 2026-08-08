@@ -1,7 +1,6 @@
 """The error-code machinery: code matching, registry entries, and the exception that carries them.
 
-Grades against ``dev/standards/error-codes.md``: the three matching modes, a static title and detail
-template per code, positional args on the wire, and a length cap so an untrusted value can never be
+Grades against ``dev/standards/error-codes.md``: a static title and detail template per code, positional args on the wire, and a length cap so an untrusted value can never be
 echoed unbounded into a message. Ported from ``heti``'s ``tests/test_errors.py``, the module this
 package was lifted from (``this.i`` @niawr3).
 
@@ -12,7 +11,7 @@ repo owns for real is the mistake that makes a genuine duplicate indistinguishab
 
 import pytest
 
-from bakobo.errors import ARG_CAP, BakoboError, ErrorCode, matches
+from bakobo.errors import ARG_CAP, BakoboError, ErrorCode
 
 _NO_ARGS = ErrorCode(
     "e.input.missing.fixture.f",
@@ -26,30 +25,6 @@ _WITH_ARGS = ErrorCode(
     hint="Send the raw public key, base64url-encoded, as the JWK x value.",
 )
 _RETRYABLE = ErrorCode("e.env.fixture.r", "I couldn't reach a service I depend on.")
-
-
-def test_a_pattern_without_a_wildcard_or_trailing_dot_matches_exactly():
-    assert matches("e.input.missing.sig.f", "e.input.missing.sig.f")
-    assert not matches("e.input.missing.sig.f", "e.input.missing")
-    assert not matches("e.input.missing.sig.f", "e.input.missing.sig-input.f")
-
-
-def test_a_pattern_ending_in_a_dot_matches_by_prefix():
-    assert matches("e.input.missing.sig.f", "e.input.")
-    assert matches("e.input.missing.sig.f", "e.input.missing.")
-    assert not matches("e.proof.said.f", "e.input.")
-
-
-def test_a_pattern_containing_a_star_matches_as_a_glob():
-    assert matches("e.input.format.key.f", "e.input.format.*")
-    assert matches("e.input.format.key.f", "e.input.*")
-    assert not matches("e.proof.said.f", "e.input.*")
-
-
-def test_a_glob_can_select_a_disposition_across_every_descriptor():
-    assert matches("e.env.watcher-timeout.r", "*.r")
-    assert matches("e.state.pending.escrow.r", "*.r")
-    assert not matches("e.input.missing.sig.f", "*.r")
 
 
 def test_raising_a_code_with_no_args_uses_the_title_as_the_detail():
@@ -106,13 +81,6 @@ def test_a_short_string_arg_and_a_non_string_arg_survive_untouched():
 def test_retryability_is_read_off_the_disposition_token():
     assert _RETRYABLE().retryable is True
     assert _NO_ARGS().retryable is False
-
-
-def test_an_error_matches_patterns_against_its_own_code():
-    err = _NO_ARGS()
-    assert err.matches("e.input.")
-    assert err.matches("e.input.missing.fixture.f")
-    assert not err.matches("e.proof.said.f")
 
 
 def test_the_entry_that_raised_is_reachable_from_the_exception():

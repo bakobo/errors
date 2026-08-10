@@ -178,6 +178,53 @@ def test_finalize_fails_rather_than_silently_leaving_the_stock_404(tmp_path, cap
     assert "build the site first" in capsys.readouterr().err
 
 
+HYPHENATED = '''
+from bakobo.errors import ErrorCode
+
+A = ErrorCode("e.state.conflict.record.f", "A record conflict.")
+B = ErrorCode("e.state.conflict.record-head.f", "The record head moved.")
+'''
+
+
+def test_a_hyphen_that_deleted_a_level_does_not_stop_the_catalog_publishing(corpus, capsys):
+    """A naming finding must not withhold a page from a URL that is already in someone's logs.
+
+    The catalog would be *correct* either way — the code is spelled as declared. Only a finding that
+    makes the catalog *wrong* may refuse to publish (``this.i`` @v44abn, @uf47pf).
+    """
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(HYPHENATED)
+    assert run(corpus) == 0
+    assert (corpus / "index.json").exists()
+    assert "record-head" in capsys.readouterr().err
+
+
+def test_lint_is_where_a_hyphen_is_fatal(corpus, capsys):
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(HYPHENATED)
+    assert main([
+        "lint", "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+    ]) == 1
+    reported = capsys.readouterr().err
+    assert "record-head" in reported
+    assert "e.state.conflict.record.head.f" in reported
+
+
+def test_lint_passes_a_corpus_with_no_hyphens(corpus, capsys):
+    assert main([
+        "lint", "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+    ]) == 0
+    assert "0 hyphenated" in capsys.readouterr().out
+
+
+def test_lint_still_fails_on_a_declaration_it_cannot_read(corpus):
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(UNREADABLE)
+    assert main([
+        "lint", "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+    ]) == 1
+
+
 def test_reconcile_exits_zero_when_the_table_and_the_data_agree(tmp_path):
     standard = tmp_path / "error-codes.md"
     standard.write_text(textwrap.dedent(SYNTHETIC_STANDARD))
@@ -191,18 +238,6 @@ def test_reconcile_names_every_disagreement_and_says_which_artifact_is_wrong(tmp
     reported = capsys.readouterr().err
     assert "norm" in reported
     assert "taxonomy.py is the defect" in reported
-
-def test_a_hyphen_that_deleted_a_level_fails_the_run(corpus, capsys):
-    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(
-        'from bakobo.errors import ErrorCode\n'
-        'A = ErrorCode("e.state.conflict.record.f", "A record conflict.")\n'
-        'B = ErrorCode("e.state.conflict.record-head.f", "The record head moved.")\n'
-    )
-    assert run(corpus) == 1
-    reported = capsys.readouterr().err
-    assert "record-head" in reported
-    assert "e.state.conflict.record.head.f" in reported
-
 
 def test_reconcile_passes_against_the_real_standard(tmp_path, standard_text):
     standard = tmp_path / "error-codes.md"

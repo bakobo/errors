@@ -33,6 +33,7 @@ def _parser() -> argparse.ArgumentParser:
         ("index", "extract every registry into index.json"),
         ("check", "extract every registry and report, writing nothing"),
         ("pages", "extract every registry and write the markdown the site is built from"),
+        ("lint", "extract every registry and fail on a hyphen that deleted a level"),
         ("finalize", "put the built site's own 404 page where a web server will look for it"),
         ("reconcile", "check the taxonomy data against the table in the standard"),
     ]:
@@ -131,13 +132,17 @@ def main(argv=None) -> int:
     for collision in reported:
         print(collision, file=sys.stderr if collision.fatal else sys.stdout)
 
+    # A hyphen that deleted a level makes a code worse named; it does not make the catalog wrong.
+    # Only a finding that would make the catalog wrong may withhold a page from a URL that is
+    # already in someone's logs (@v44abn), so these are reported everywhere and fatal under `lint`.
     hyphenated = suspicions(entries)
     for suspicion in hyphenated:
         print(f"[{suspicion.confidence}] {suspicion}", file=sys.stderr)
 
-    if problems or hyphenated or any(collision.fatal for collision in reported):
+    unreadable = bool(problems) or any(collision.fatal for collision in reported)
+    if unreadable or (options.command == "lint" and hyphenated):
         print(
-            f"Refused to publish: {len(problems)} unreadable declaration(s), "
+            f"Refused: {len(problems)} unreadable declaration(s), "
             f"{sum(c.fatal for c in reported)} collision(s), and {len(hyphenated)} hyphenated "
             f"leaf/leaves that look like a deleted level.",
             file=sys.stderr,
@@ -145,7 +150,10 @@ def main(argv=None) -> int:
         return 1
 
     index = build_index(entries)
-    print(f"{len(index['codes'])} codes from {len({e.repo for e in entries})} repos.")
+    print(
+        f"{len(index['codes'])} codes from {len({e.repo for e in entries})} repos, "
+        f"{len(hyphenated)} hyphenated leaf/leaves."
+    )
     if options.command == "index":
         options.out.write_text(json.dumps(index, indent=2, sort_keys=False) + "\n")
         print(f"Wrote {options.out}.")

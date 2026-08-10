@@ -4,8 +4,10 @@
 # whether the left-hand thing could have a different problem — if it could, it is a level and the
 # hyphen is a deleted one. That test needs a person, so every hyphen surviving in a Bakobo code is
 # listed here with the reason it is one concept. An entry with no justification is refused, and an
-# entry cannot excuse a hyphen the check has proven is a level — otherwise the escape hatch swallows
-# the finding.
+# entry excuses the finding, including one the check can prove is a level. That rule was the other
+# way round at first and was wrong: the check rules on whether a dot is LEGAL, and only a person can
+# rule on whether it would be USEFUL — see duplicate-key below, where both halves are levels and the
+# class they would form is still incoherent. The safeguard is the justification, not a veto.
 #
 # This file's real job is not to permit things. It is to make hyphenating deliberate: nobody adds a
 # line here without noticing they are adding it.
@@ -19,3 +21,5 @@
 
 "not-an-object" = "A phrase describing the value that arrived, in the sense of the JSON type it was not. There is no `not` for `an-object` to hang beneath."
 "second-writer" = "A phrase naming who the other party was, under e.state.conflict.record. — not a writer whose problem is `second`."
+"covered-comp" = "RFC 9421's own term for what a signature spans. `comp` is a level under e.feature.unsupported., but not under e.input.missing., and nothing else goes missing there (heti this.i @jqffos)."
+"duplicate-key" = "IS-A would permit key.duplicate, but heti owns e.input.format.key.f for a signature keyid it cannot read; the class would hold a malformed keyid and a JSON key appearing twice, which share a word and nothing else (tefa this.i @fv3jh3)."

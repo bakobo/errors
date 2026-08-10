@@ -35,6 +35,24 @@ def test_a_hyphen_whose_left_half_is_a_level_elsewhere_is_proven():
     assert "sig" in found.reason
 
 
+def test_the_reason_names_the_half_that_is_actually_a_level():
+    """Naming the wrong half is worse than saying nothing: it is a false claim in a diagnostic."""
+    (found,) = check(["e.feature.unsupported.comp.f", "e.feature.unsupported.covered-comp.f"])
+    assert "'comp'" in found.reason
+    assert "'covered'" not in found.reason
+
+
+def test_a_level_under_a_different_parent_proves_nothing():
+    """`comp` under e.feature.unsupported. says nothing about `covered-comp` under e.input.missing."""
+    found = check(["e.feature.unsupported.comp.f", "e.input.missing.covered-comp.f"])
+    assert [f.confidence for f in found] == ["undeclared"]
+
+
+def test_a_level_under_the_same_parent_does_prove_it():
+    (found,) = check(["e.input.format.key.f", "e.input.format.duplicate-key.f"])
+    assert found.confidence == "proven"
+
+
 def test_a_hyphen_whose_right_half_is_a_level_elsewhere_is_proven():
     (found,) = check(["e.proof.sig.f", "e.proof.endorsement-sig.f"])
     assert found.token == "endorsement-sig"
@@ -63,17 +81,14 @@ def test_an_allowlisted_hyphen_is_not_reported():
     assert check(["e.feature.unsupported.trans-aid.f"], allowed=["trans-aid"]) == []
 
 
-def test_the_allowlist_cannot_excuse_a_proven_missing_level():
-    """Otherwise the escape hatch swallows the finding the check exists for."""
-    found = check(["e.input.format.sig.f", "e.input.format.sig-label.f"], allowed=["sig-label"])
-    assert found[0].confidence == "proven"
+def test_a_justified_hyphen_is_excused_even_when_the_check_can_prove_the_level():
+    """The check rules on whether a dot is LEGAL; only a person can rule on whether it is useful."""
+    assert check(["e.input.format.key.f", "e.input.format.duplicate-key.f"],
+                 allowed=["duplicate-key"]) == []
 
 
-def test_the_allowlist_does_not_excuse_a_family_either():
-    found = check(
-        ["e.state.conflict.record-head.f", "e.state.conflict.record-busy.r"],
-        allowed=["record-head", "record-busy"],
-    )
+def test_an_unjustified_hyphen_is_never_excused_by_silence():
+    found = check(["e.state.conflict.record-head.f", "e.state.conflict.record-busy.r"])
     assert len(found) == 2
 
 

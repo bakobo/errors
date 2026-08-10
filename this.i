@@ -159,14 +159,23 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         gathers nothing while record-head and record-busy are two unrelated strings. The rule cannot
         be decided mechanically — trans-aid is one concept and record-head is two — so this check
         reports evidence at two confidences and makes the residue deliberate at a third. A half that
-        already stands as its own level is *proven*; a half shared by two or more codes is a
+        already stands as its own level BESIDE IT, under the same parent, is *proven* — scoped that
+        way because a level speaks only for its own siblings, and an earlier version compared across
+        the whole corpus and then reported that `covered` was a level when the level was `comp`,
+        under a different parent entirely: a false claim inside a diagnostic, which is worse than a
+        missing one. A half shared by two or more codes is a
         *family* whose common prefix does not work; everything else must appear in hyphens.toml with
         a written justification, and an entry with no justification is refused. Chose the allowlist
         over either extreme: refusing every hyphen would forbid trans-aid and not-an-object, which
         are genuinely one name, and warning without a gate reproduces the state that let 64 of 107
-        codes acquire the defect. The allowlist deliberately cannot excuse a proven or family
-        finding, because an escape hatch that swallows the finding the check exists for is worse
-        than no check. A suspicion is REPORTED everywhere and FATAL only under `lint`, which is the
+        codes acquire the defect. The allowlist excuses any justified hyphen, including one the
+        check can prove is a level. That rule was the other way round at first, on the reasoning
+        that an escape hatch swallowing the finding is worse than no check, and it was wrong: the
+        check rules on whether a dot is LEGAL and only a person can rule on whether it would be
+        USEFUL. duplicate-key is the case that proved it — both halves are levels under one parent,
+        so the check is right that e.input.format.key. is available, and heti already owns
+        e.input.format.key.f for a signature keyid, so that class would hold a malformed keyid and a
+        JSON object key appearing twice. The safeguard is the required justification, not a veto. A suspicion is REPORTED everywhere and FATAL only under `lint`, which is the
         correction of a real defect rather than a nicety: wiring it into the publish gate stopped
         errors.bakobo.com deploying for two days because heti and tefa had not yet merged their
         re-mints, so a naming preference withheld pages from URLs already sitting in logs. The line

@@ -62,18 +62,20 @@ def read_allowlist(path=ALLOWLIST) -> set[str]:
     return set(declared)
 
 
-def _levels(entries) -> set[str]:
-    """Every sub-descriptor that stands as a level of its own somewhere in the corpus.
+def _levels(entries) -> dict[str, set[str]]:
+    """Every sub-descriptor that stands as a level of its own, keyed by the parent it sits under.
 
-    The first descriptor is excluded. It is a level in every code by construction, so counting it
-    would make ``input`` outrank ``sig`` and nest ``sig-input`` the wrong way round.
+    Keyed by parent because a level only proves something about its own siblings: ``comp`` under
+    ``e.feature.unsupported.`` says nothing about ``covered-comp`` under ``e.input.missing.``. The
+    first descriptor is never itself a level here — it is one in every code by construction.
     """
-    return {
-        token
-        for entry in entries
-        for token in entry.code.split(".")[2:-1]
-        if "-" not in token
-    }
+    found: dict[str, set[str]] = {}
+    for entry in entries:
+        tokens = entry.code.split(".")
+        for depth, token in enumerate(tokens[2:-1], start=2):
+            if "-" not in token:
+                found.setdefault(".".join(tokens[:depth]), set()).add(token)
+    return found
 
 
 def _repair(code: str, token: str, head: str) -> str:
@@ -109,27 +111,29 @@ def suspicions(entries, allowed=None) -> list[Suspicion]:
 
     found = []
     for entry in entries:
-        for token in entry.code.split(".")[1:-1]:
-            if "-" not in token:
+        tokens = entry.code.split(".")
+        for depth, token in enumerate(tokens[1:-1], start=1):
+            if "-" not in token or token in allowed:
                 continue
             left, right = token.split("-", 1)
-            if left in levels or right in levels:
-                head = parent(left, right)
+            beside = levels.get(".".join(tokens[:depth]), set())
+            proof = left if left in beside else right if right in beside else None
+            if proof is not None:
                 found.append(Suspicion(
                     entry.code, token, "proven",
-                    f"{head!r} already stands as its own level elsewhere in the corpus, so "
-                    f"{token!r} is that level with a dot missing.",
-                    _repair(entry.code, token, head),
+                    f"{proof!r} already stands as its own level beside it, so {token!r} is that "
+                    f"level with a dot missing.",
+                    _repair(entry.code, token, parent(left, right)),
                 ))
             elif len(halves.get(left, ())) > 1 or len(halves.get(right, ())) > 1:
-                head = parent(left, right)
+                head = left if len(halves.get(left, ())) > 1 else right
                 found.append(Suspicion(
                     entry.code, token, "family",
                     f"{head!r} is shared by {len(halves[head])} codes, so they are a family whose "
                     f"common prefix does not work.",
-                    _repair(entry.code, token, head),
+                    _repair(entry.code, token, parent(left, right)),
                 ))
-            elif token not in allowed:
+            else:
                 found.append(Suspicion(
                     entry.code, token, "undeclared",
                     f"{token!r} is hyphenated and unjustified.",

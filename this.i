@@ -166,7 +166,15 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         are genuinely one name, and warning without a gate reproduces the state that let 64 of 107
         codes acquire the defect. The allowlist deliberately cannot excuse a proven or family
         finding, because an escape hatch that swallows the finding the check exists for is worse
-        than no check. The suggested repair puts the subject first, per error-codes.md's ordering
+        than no check. A suspicion is REPORTED everywhere and FATAL only under `lint`, which is the
+        correction of a real defect rather than a nicety: wiring it into the publish gate stopped
+        errors.bakobo.com deploying for two days because heti and tefa had not yet merged their
+        re-mints, so a naming preference withheld pages from URLs already sitting in logs. The line
+        is whether a finding makes the catalog WRONG. An unreadable declaration and a fatal
+        collision do, and refuse to publish; a badly spelled leaf does not, and the page is correct
+        either way. @gazetr's fatal/reported split had already drawn that line for collisions and
+        this failed to follow it. `lint` is what a minting repo runs, where the author is.
+        The suggested repair puts the subject first, per error-codes.md's ordering
         rule, and says how to invert it rather than pretending to be a ruling. Counting which half
         organises more codes was tried and rejected: it measures frequency in today's corpus rather
         than effect on what a recipient does, which got endorsement-sig backwards. Evidence that the

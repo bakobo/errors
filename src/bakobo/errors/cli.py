@@ -64,6 +64,14 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _listed(parts: list[str]) -> str:
+    """Join clauses the way a sentence does, so a refusal reads as one."""
+    if len(parts) == 1:
+        return parts[0]
+    separator = ", and " if len(parts) > 2 else " and "
+    return ", ".join(parts[:-1]) + separator + parts[-1]
+
+
 def _finalize(site: Path) -> int:
     """Replace the renderer's stock 404 with the one that teaches the grammar.
 
@@ -139,14 +147,19 @@ def main(argv=None) -> int:
     for suspicion in hyphenated:
         print(f"[{suspicion.confidence}] {suspicion}", file=sys.stderr)
 
-    unreadable = bool(problems) or any(collision.fatal for collision in reported)
-    if unreadable or (options.command == "lint" and hyphenated):
-        print(
-            f"Refused: {len(problems)} unreadable declaration(s), "
-            f"{sum(c.fatal for c in reported)} collision(s), and {len(hyphenated)} hyphenated "
-            f"leaf/leaves that look like a deleted level.",
-            file=sys.stderr,
-        )
+    # Only what actually stopped the run is named. The summary is the line a CI log shows first, so
+    # a finding listed there reads as a cause, and naming a hyphen in a refusal it did not cause
+    # sends the reader off to re-mint a code that was not the problem.
+    fatal = sum(collision.fatal for collision in reported)
+    causes = []
+    if problems:
+        causes.append(f"{len(problems)} unreadable declaration(s)")
+    if fatal:
+        causes.append(f"{fatal} collision(s)")
+    if options.command == "lint" and hyphenated:
+        causes.append(f"{len(hyphenated)} hyphenated leaf/leaves that look like a deleted level")
+    if causes:
+        print(f"Refused: {_listed(causes)}.", file=sys.stderr)
         return 1
 
     index = build_index(entries)

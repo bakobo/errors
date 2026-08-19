@@ -225,6 +225,74 @@ def test_lint_still_fails_on_a_declaration_it_cannot_read(corpus):
     ]) == 1
 
 
+COLLIDING = '''
+from bakobo.errors import ErrorCode
+
+AGAIN = ErrorCode("e.input.missing.sig.f", "A different title.")
+HEAD = ErrorCode("e.state.conflict.record-head.f", "The record head moved.")
+'''
+
+EVERYTHING = '''
+from bakobo.errors import ErrorCode
+
+HINT = "Shared advice."
+SHARED = ErrorCode("e.input.format.sig.f", "A title.", hint=HINT)
+AGAIN = ErrorCode("e.input.missing.sig.f", "A different title.")
+HEAD = ErrorCode("e.state.conflict.record-head.f", "The record head moved.")
+'''
+
+
+def refusal(capsys):
+    """The one line that says why the run stopped."""
+    lines = [line for line in capsys.readouterr().err.splitlines() if line.startswith("Refused")]
+    assert len(lines) == 1
+    return lines[0]
+
+
+def test_the_refusal_names_only_what_caused_it(corpus, capsys):
+    """A hyphen is reported here and fatal only under ``lint`` (``this.i`` @uf47pf), so a refusal
+    naming one it did not cause sends the reader to re-mint a code that was not the problem."""
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(COLLIDING)
+    assert run(corpus) == 1
+    said = refusal(capsys)
+    assert said == "Refused: 1 collision(s)."
+
+
+def test_a_lint_refusal_names_the_hyphens_because_there_they_are_the_cause(corpus, capsys):
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(HYPHENATED)
+    assert main([
+        "lint", "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+    ]) == 1
+    assert refusal(capsys) == (
+        "Refused: 1 hyphenated leaf/leaves that look like a deleted level."
+    )
+
+
+def test_two_causes_are_joined_without_a_comma(corpus, capsys):
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(UNREADABLE + HYPHENATED)
+    assert main([
+        "lint", "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+    ]) == 1
+    assert refusal(capsys) == (
+        "Refused: 1 unreadable declaration(s) and 1 hyphenated leaf/leaves that look like a "
+        "deleted level."
+    )
+
+
+def test_three_causes_read_as_a_list(corpus, capsys):
+    (corpus / "checkouts" / "pkg" / "src" / "pkg" / "more.py").write_text(EVERYTHING)
+    assert main([
+        "lint", "--corpus", str(corpus / "corpus.toml"),
+        "--checkouts", str(corpus / "checkouts"),
+    ]) == 1
+    assert refusal(capsys) == (
+        "Refused: 1 unreadable declaration(s), 1 collision(s), and 1 hyphenated leaf/leaves that "
+        "look like a deleted level."
+    )
+
+
 def test_reconcile_exits_zero_when_the_table_and_the_data_agree(tmp_path):
     standard = tmp_path / "error-codes.md"
     standard.write_text(textwrap.dedent(SYNTHETIC_STANDARD))

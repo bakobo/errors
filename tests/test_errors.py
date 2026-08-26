@@ -67,10 +67,57 @@ def test_raising_a_code_with_the_wrong_args_is_a_programming_error(values):
 
 
 def test_a_long_string_arg_is_capped_before_it_reaches_the_message():
-    err = _WITH_ARGS(keyid="A" * 500, size=32)
+    err = _WITH_ARGS(keyid="A" * 5000, size=32)
     assert len(err.code_args[0]) == ARG_CAP
-    assert err.code_args[0].endswith("…")
+    assert "…" in err.code_args[0]
     assert err.code_args[0] in err.detail
+
+
+def test_the_cap_is_a_flood_guard_rather_than_a_legibility_rule():
+    """The number, stated as a row, because it is the whole of the decision.
+
+    It was 80 for years and the figure was never argued: both rubrics in ``error-handling.md``
+    say an interpolated value must be *capped* and neither says how tightly. Eighty is short
+    enough to cut a sentence an application wrote itself, which is how heti ended up with
+    sixteen refusals that stopped mid-clause, usually just before the part naming the remedy.
+
+    What this bound is for is a value from the wire, in a message that may be logged: nothing
+    may make a message unbounded. What it is *not* for is deciding what reads well on a screen.
+    That is the display layer's, which knows its own geometry — heti bounds a field at 200 for
+    two and a half rows of an eighty-column terminal — and a caller with no display bound of its
+    own is better served by a generous guard than by a tight one it did not choose.
+    """
+    assert ARG_CAP >= 512
+    assert ARG_CAP <= 4096
+
+
+def test_a_capped_value_keeps_its_end_as_well_as_its_beginning():
+    """Head-truncation drops the part that identifies a path.
+
+    ``/home/somebody/very/long/.../grant.cesr`` cut at the cap names a directory and hides the
+    filename, which is the one thing the reader needed. Eliding the middle keeps both ends, and
+    it is right for every kind of value rather than only for paths: an identifier is
+    distinguished at both ends, and a sentence that has to be cut reads better with its
+    conclusion than without it.
+    """
+    err = _WITH_ARGS(keyid="/start/" + "x" * 5000 + "/grant.cesr", size=32)
+    capped = err.code_args[0]
+
+    assert len(capped) == ARG_CAP
+    assert capped.startswith("/start/")
+    assert capped.endswith("/grant.cesr")
+    assert "…" in capped
+
+
+def test_a_value_only_just_over_the_cap_is_still_readable():
+    """The elision has to leave something on both sides at every length, not only for the
+    enormous case — a value one character over must not come back as mostly ellipsis."""
+    err = _WITH_ARGS(keyid="a" * (ARG_CAP + 1), size=32)
+    capped = err.code_args[0]
+
+    assert len(capped) == ARG_CAP
+    assert capped.startswith("aaaa")
+    assert capped.endswith("aaaa")
 
 
 def test_a_short_string_arg_and_a_non_string_arg_survive_untouched():

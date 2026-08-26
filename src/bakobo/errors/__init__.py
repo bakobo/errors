@@ -31,9 +31,24 @@ __all__ = [
     "validate_code",
 ]
 
-ARG_CAP = 80
-"""Longest string an arg may reach a message as. Values arrive from the wire; a message may be
-rendered or logged, so no arg is ever echoed unbounded (``error-handling.md``, rubric #7)."""
+ARG_CAP = 1024
+"""Longest string an arg may reach a message as.
+
+**A flood guard, not a legibility rule.** Values arrive from the wire and a message may be
+rendered or logged, so nothing may make a message unbounded (``error-handling.md``, rubrics #2
+and #7). That is the whole of what this bound is for.
+
+What it is not for is deciding what reads well on a screen. A display layer knows its own
+geometry and should bound for it — heti clips a field at 200 characters, which is two and a half
+rows of an eighty-column terminal — and a consumer with no bound of its own is better served by
+a generous guard than by a tight one it never chose.
+
+It was 80 for years and that figure was never argued: both rubrics say *capped* and neither says
+how tightly. Eighty is short enough to cut a sentence an application wrote itself, which is how
+heti accumulated sixteen refusals that stopped mid-clause, usually just before the part naming
+the remedy — and short enough that a coded refusal could not name two 44-character identifiers.
+Raised 2026-08-26 with Daniel's approval; see ``input-handling.md`` for the boundary posture this
+belongs to."""
 
 
 def is_a(code: str, branch: str) -> bool:
@@ -109,10 +124,19 @@ def is_like(code: str, pattern: str) -> bool:
 
 
 def _cap(value):
-    """Bound a string arg; leave anything else (a count, a size) as it is."""
+    """Bound a string arg; leave anything else (a count, a size) as it is.
+
+    **The middle goes, never the end.** Head-truncation drops the part that identifies a path —
+    a long ``/home/…/grant.cesr`` cut at the cap names a directory and hides the filename, which
+    is the one thing the reader needed. Keeping both ends is right for every kind of value rather
+    than only for paths: an identifier is distinguished at both ends, and a sentence that has to
+    be cut at all reads better with its conclusion than without it.
+    """
     if not isinstance(value, str) or len(value) <= ARG_CAP:
         return value
-    return value[: ARG_CAP - 1] + "…"
+    keep = ARG_CAP - 1
+    head = (keep + 1) // 2
+    return value[:head] + "…" + value[len(value) - (keep - head):]
 
 
 @dataclass(frozen=True)

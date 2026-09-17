@@ -271,7 +271,21 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         detail keeps its fenced block, whose contents the renderer already escapes, and gets a fence
         longer than any backtick run inside it, since HTML-escaping there would double-escape and
         show a reader `&lt;` where the template says `<`; arg names get a code span delimited the
-        same way. Tradeoff accepted, and visible on 42 of 532 pages today: a registry's prose is no
+        same way. Where the FIRST character of a folded line is concerned, that enumerating habit is
+        wrong and the rule is inverted: neutralize it unless it is a letter. The first version of
+        this listed the block markers it believed could open a line, and the list was incomplete
+        twice over — `---` is a thematic break that swallowed the whole title, and `#h` is a heading
+        even without the space after the hash the syntax is usually described as needing; `: def`
+        and a bare `1.` went the same way. A blacklist of block constructs has to be re-audited
+        every time an extension is switched on in zensical.toml, which nothing would prompt anyone
+        to do, and a letter is the one opener that cannot begin a block under any of them. The
+        mechanism there is a numeric character reference rather than a backslash, because `~`, `:`
+        and `=` are outside python-markdown's escapable set and a backslash would be shown to the
+        reader. The delimiter-length argument for detail and arg names needs no such correction, and
+        was re-checked rather than assumed: a `~~~` inside a backtick fence is content, since a fence
+        closes only on a longer run of its own character, and a block marker in there is inert for a
+        second reason — nothing inside a code block is parsed as markdown at all. Tradeoff accepted,
+        and visible on 42 of 532 pages today: a registry's prose is no
         longer read as markdown, so a hint that writes `witness <url>` now shows its backticks
         instead of setting the span in code. That is the right way round — the hint is a literal a
         CLI also prints, where the backticks are characters and not formatting, and the site was

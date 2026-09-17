@@ -175,6 +175,24 @@ IMAGE = "<img src=x onerror=alert('xss')>"
 HANDLER = 'a title {: onclick="alert(1)" }'
 JS_LINK = "[click me](javascript:alert(1))"
 
+BLOCK_MARKERS = (
+    "---", "-----", "***", "___", "===",  # thematic breaks, and a setext rule
+    "# h", "#h", "###### h6", "######h6",  # headings: python-markdown wants no space after the hash
+    "> quote", ": def", "+ plus", "- dash", "-dash",  # blockquote, definition, bullets
+    "1. one", "2) two", "|cell", "~~~", "~~~~",  # ordered lists, a table cell, superfences
+    '!!! danger "boom"', '??? note "x"',  # admonition and details
+    "    indented", "<!-- c -->", "* star", "_under_",
+)
+"""Every way a line can open and stop being the line it was.
+
+Enumerated rather than reasoned about, because reasoning about it is what got this wrong once:
+``---`` renders as a thematic break and the title disappears, and ``#h`` is a heading even though
+python-markdown is usually described as wanting a space after the hash.
+"""
+
+FENCE_MARKERS = ("---", "~~~", "```", "````", "   ```", "~~~~~~", "a\n```\nb")
+"""Bodies that are themselves a fence or a block marker, for the sinks that build a delimiter."""
+
 
 def _extensions(table, prefix=""):
     """The markdown extensions ``zensical.toml`` turns on, as python-markdown names.
@@ -289,13 +307,52 @@ def test_a_markdown_link_in_a_title_cannot_become_a_javascript_url(to_html):
         assert JS_LINK in reading(rendered)
 
 
+def folded(text):
+    """What a reader should see once the escaping has folded the whitespace."""
+    return " ".join(text.split())
+
+
 def test_a_title_that_opens_with_a_block_marker_stays_a_title(to_html):
-    """The code's own heading is the only one a code page has; a title may not add a second."""
-    for title in ("# Not a heading.", "- Not a bullet.", "+ Nor this.", "3. Nor this one."):
+    """A title is prose in a paragraph, and must not become the block its first character names.
+
+    The code's own heading is the only heading a code page has, and the page carries no rule, no
+    list and no definition, so any of those appearing means a title stopped being a title.
+    """
+    for title in BLOCK_MARKERS:
         rendered = to_html(pages_for(title=title)["e.input.format.f.md"])
-        assert rendered.count("<h1") == 1
-        assert "<ul>" not in rendered and "<ol>" not in rendered
-        assert title in reading(rendered)
+        assert rendered.count("<h1") == 1, title
+        for structure in ("<hr", "<ul>", "<ol>", "<dl>", "<blockquote"):
+            assert structure not in rendered, f"{title!r} became {structure}"
+        assert folded(title) in reading(rendered), title
+
+
+def test_a_title_that_is_only_a_horizontal_rule_does_not_become_one(to_html):
+    """The case that got away: ``---`` rendered as a thematic break and the title vanished."""
+    rendered = to_html(pages_for(title="---")["e.input.format.f.md"])
+    assert "<hr" not in rendered
+    assert "---" in reading(rendered)
+
+
+def test_a_hint_that_opens_with_a_block_marker_stays_a_hint(to_html):
+    """A hint sits in a paragraph of its own too, so it is the same sink with the same exposure."""
+    for hint in BLOCK_MARKERS:
+        rendered = to_html(pages_for(title="A title.", hint=hint)["e.input.format.f.md"])
+        assert rendered.count("<h1") == 1, hint
+        for structure in ("<hr", "<ul>", "<ol>", "<dl>", "<blockquote"):
+            assert structure not in rendered, f"{hint!r} became {structure}"
+        assert folded(hint) in reading(rendered), hint
+
+
+def test_a_block_marker_title_reads_the_same_in_the_table_cell_and_the_prefix_list(to_html):
+    """A leading marker is inert mid-line, but the escaping still has to display it unchanged."""
+    for title in BLOCK_MARKERS:
+        for page in (pages_for(title=title)["index.md"], pages_for(title=title)["e.input..md"]):
+            assert folded(title) in reading(to_html(page)), title
+
+
+def test_an_empty_title_renders_the_page_rather_than_failing(to_html):
+    rendered = to_html(pages_for(title="")["e.input.format.f.md"])
+    assert "Declared in" in reading(rendered)
 
 
 def test_a_backtick_in_an_arg_name_cannot_escape_its_code_span(to_html):
@@ -334,3 +391,37 @@ def test_catalog_json_carries_no_markup_a_browser_could_be_talked_into_running()
     published = pages_for(title=SCRIPT, hint=IMAGE)["catalog.json"]
     for character in ("<", ">", "&"):
         assert character not in published
+
+
+def test_a_detail_that_is_itself_a_fence_marker_cannot_break_out_of_its_block(to_html):
+    """The delimiter-length argument, checked rather than asserted.
+
+    A fence ends only on a longer run of the same character, so a ``~~~`` in the body of a backtick
+    fence is content and an inner ``` is outrun. A block marker in there is inert for a different
+    reason again: nothing inside a code block is parsed as markdown at all.
+    """
+    for body in FENCE_MARKERS:
+        detail = f"{body}\n{SCRIPT}\n{body}"
+        rendered = to_html(pages_for(title="A title.", detail=detail)["e.input.format.f.md"])
+        assert "<script" not in rendered, body
+        assert "<hr" not in rendered, body
+        assert SCRIPT in reading(rendered), body
+        assert "Declared in" in reading(rendered), body
+
+
+def test_an_arg_name_that_is_itself_a_fence_marker_cannot_break_out_of_its_span(to_html):
+    for name in FENCE_MARKERS + (SCRIPT, "", "`"):
+        rendered = to_html(
+            pages_for(title="A title.", detail="Uses {a}.", args=(name,))["e.input.format.f.md"]
+        )
+        assert "<script" not in rendered, name
+        assert "onclick" not in markup(rendered), name
+        assert "Declared in" in reading(rendered), name
+
+
+def test_an_arg_name_is_kept_on_the_line_the_sentence_around_it_assumes(to_html):
+    """A newline in an arg name would otherwise split the sentence that names the placeholders."""
+    rendered = to_html(
+        pages_for(title="A title.", detail="Uses {a}.", args=("two\nlines",))["e.input.format.f.md"]
+    )
+    assert "two lines" in reading(rendered)

@@ -36,25 +36,37 @@ is a live link. ``|`` ends a table cell, and a backtick opens a code span that r
 the block.
 """
 
-_BLOCK = re.compile(r"\A(#{1,6}|[-+])(?=\s|\Z)")
-_ORDERED = re.compile(r"\A(\d+)([.)])(?=\s|\Z)")
 _BACKTICKS = re.compile(r"`+")
+
+
+def _inline(text: str) -> str:
+    """HTML, and the characters that build markup in the middle of a line."""
+    text = html.escape(text)
+    for character in MARKUP:
+        text = text.replace(character, "\\" + character)
+    return text
 
 
 def _prose(value) -> str:
     """One registry string, safe in a paragraph, a list item or a table cell.
 
-    HTML first, since the renderer would otherwise pass a tag straight through; then the markup
-    characters, backslash-escaped rather than dropped so the page still reads what the registry
-    wrote; then the whitespace folded, because a newline in a title restructures the block it sits
-    in and a table row is one line. What is left is a block marker at the front, which would turn a
-    title into a heading or a bullet.
+    Whitespace is folded first, because a newline in a title restructures the block it sits in and
+    a table row is one line — and because the folding decides which character is the first one. The
+    rest is :func:`_inline`, plus the first character, which is the one position where a character
+    can start a *block* rather than sit in one.
+
+    That first character is neutralized unless it is a letter. The rule is a whitelist on purpose:
+    an earlier version listed the markers it thought could open a block, and the list was wrong
+    twice over — ``---`` is a thematic break that swallows the whole title, and ``#h`` is a heading
+    even without the space after the hash that the syntax is usually described as needing. A letter
+    is the one thing that cannot begin a block in any of these extensions, so that is what the test
+    asks. A numeric character reference is the mechanism rather than a backslash, because ``~``,
+    ``:`` and ``=`` are not in python-markdown's escapable set and ``\\~`` would show the backslash.
     """
-    text = html.escape(str(value))
-    for character in MARKUP:
-        text = text.replace(character, "\\" + character)
-    text = " ".join(text.split())
-    return _ORDERED.sub(r"\1\\\2", _BLOCK.sub(r"\\\1", text))
+    text = " ".join(str(value).split())
+    if not text or text[0].isalpha():
+        return _inline(text)
+    return f"&#{ord(text[0])};{_inline(text[1:])}"
 
 
 def _delimiter(body: str, least: int) -> str:
@@ -76,8 +88,12 @@ def _fence(value) -> list[str]:
 
 
 def _span(value) -> str:
-    """One arg name as a code span, delimited so a backtick in it cannot end the span early."""
-    text = str(value)
+    """One arg name as a code span, delimited so a backtick in it cannot end the span early.
+
+    Whitespace is folded for the same reason a title's is: a code span does not survive a newline,
+    and the sentence that names the placeholders is written as one line.
+    """
+    text = " ".join(str(value).split())
     ticks = _delimiter(text, 1)
     return f"{ticks} {text} {ticks}"
 

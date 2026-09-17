@@ -5,15 +5,27 @@ carries ``"type": "https://errors.bakobo.com/<code>"`` (``this.i`` @6h5db4), so 
 exactly that path for every code. Prefix and category pages are free from the grammar, and they are
 what makes the category-versus-code distinction visible to a human — the thing ``error-codes.md``
 spends a whole section teaching.
+
+The escaping tests at the foot of this file render each page through the real extension set, read
+out of ``zensical.toml``, rather than asserting on the markdown. A registry entry is prose lifted
+from another repo, the renderer passes raw HTML through, and what matters is what reaches a reader's
+browser — so the oracle has to be the rendered page (``this.i`` @twdcue2y).
 """
 
+import html as htmllib
+import json
 import re
+import tomllib
+from pathlib import Path
 
+import markdown
 import pytest
 
 from bakobo.errors.catalog import build_index
 from bakobo.errors.extract import Entry
 from bakobo.errors.site import render
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def entry(code, title="A title.", *, repo="heti", args=(), detail=None, hint=None):
@@ -150,3 +162,175 @@ def test_a_detail_that_interpolates_nothing_names_no_args():
 def test_a_code_with_no_detail_or_hint_still_renders():
     pages = render(build_index([entry("e.party.refused.f", "The other party refused.")]))
     assert "e.party.refused.f" in pages["e.party.refused.f.md"]
+
+
+# --- Escaping: what a registry's prose may do to the published page --------------------------------
+#
+# Every title, detail and hint is a literal lifted out of another repo's source, so anything that can
+# land an error code anywhere in the corpus can put characters on errors.bakobo.com. The renderer
+# passes raw HTML through, which makes an unescaped title a stored-XSS sink (``this.i`` @twdcue2y).
+
+SCRIPT = "<script>alert('xss')</script>"
+IMAGE = "<img src=x onerror=alert('xss')>"
+HANDLER = 'a title {: onclick="alert(1)" }'
+JS_LINK = "[click me](javascript:alert(1))"
+
+
+def _extensions(table, prefix=""):
+    """The markdown extensions ``zensical.toml`` turns on, as python-markdown names.
+
+    TOML nests ``pymdownx.superfences`` as a sub-table; python-markdown wants the dotted name back.
+    A table whose every value is itself a non-empty table is a namespace, and anything else is one
+    extension's config.
+    """
+    names = []
+    for key, value in table.items():
+        full = f"{prefix}{key}"
+        if isinstance(value, dict) and value and all(isinstance(v, dict) for v in value.values()):
+            names += _extensions(value, f"{full}.")
+        else:
+            names.append(full)
+    return names
+
+
+@pytest.fixture(scope="module")
+def to_html():
+    """Render a generated page the way the site does, with the real config's extensions."""
+    config = tomllib.loads((ROOT / "zensical.toml").read_text())
+    renderer = markdown.Markdown(extensions=_extensions(config["project"]["markdown_extensions"]))
+
+    def render_page(page):
+        renderer.reset()
+        return renderer.convert(page)
+
+    return render_page
+
+
+def reading(rendered):
+    """The characters a reader sees, with the markup taken away."""
+    return htmllib.unescape(re.sub(r"<[^>]+>", "", rendered))
+
+
+def markup(rendered):
+    """The tags alone, with every text node taken away.
+
+    A payload that survived escaping still reads back as ``onclick=`` or ``javascript:`` inside a
+    text node, which is exactly where it is harmless. What must not contain either is a tag.
+    """
+    return re.sub(r"(?s)>[^<]*<", "><", rendered)
+
+
+def pages_for(**fields):
+    return render(build_index([entry("e.input.format.f", **fields)]))
+
+
+def showing_the_title(pages):
+    """Every page that puts a title on the screen: its own, its prefix's, and the index."""
+    return [pages["e.input.format.f.md"], pages["e.input..md"], pages["index.md"]]
+
+
+def test_a_script_in_a_title_is_inert_on_every_page_that_shows_a_title(to_html):
+    for page in showing_the_title(pages_for(title=SCRIPT)):
+        rendered = to_html(page)
+        assert "<script" not in rendered
+        assert SCRIPT in reading(rendered)
+
+
+def test_an_image_handler_in_a_title_is_inert_on_every_page_that_shows_a_title(to_html):
+    for page in showing_the_title(pages_for(title=IMAGE)):
+        rendered = to_html(page)
+        assert "<img" not in rendered
+
+
+def test_a_script_in_a_detail_cannot_break_out_of_its_code_block(to_html):
+    detail = f"A template.\n```\n{SCRIPT}\n```\nstill inside"
+    rendered = to_html(pages_for(title="A title.", detail=detail)["e.input.format.f.md"])
+    assert "<script" not in rendered
+    assert reading(rendered).count(SCRIPT) == 1
+
+
+def test_a_detail_with_no_backticks_still_renders_as_a_code_block(to_html):
+    rendered = to_html(
+        pages_for(title="A title.", detail="The signature on {credential} does not verify.")["e.input.format.f.md"]
+    )
+    assert "<code>" in rendered
+    assert "The signature on {credential} does not verify." in reading(rendered)
+
+
+def test_a_script_in_a_hint_is_inert(to_html):
+    rendered = to_html(pages_for(title="A title.", hint=f"Try {SCRIPT} again.")["e.input.format.f.md"])
+    assert "<script" not in rendered
+    assert SCRIPT in reading(rendered)
+
+
+def test_a_pipe_in_a_title_neither_breaks_a_table_row_nor_injects_a_cell(to_html):
+    rendered = to_html(pages_for(title="Use | or ||, never |||.")["index.md"])
+    row = re.search(r"<tr>\s*<td><a href=\"/e\.input\.format\.f/\">.*?</tr>", rendered, re.S).group()
+    assert row.count("<td") == 2
+    assert "Use | or ||, never |||." in reading(row)
+
+
+def test_a_pipe_in_a_title_survives_the_prefix_page_that_lists_it(to_html):
+    rendered = to_html(pages_for(title="Use | or bust.")["e.input..md"])
+    assert "Use | or bust." in reading(rendered)
+
+
+def test_an_attr_list_suffix_in_a_title_cannot_attach_an_event_handler(to_html):
+    for page in showing_the_title(pages_for(title=HANDLER)):
+        rendered = to_html(page)
+        assert "onclick" not in markup(rendered)
+        assert HANDLER in reading(rendered)
+
+
+def test_a_markdown_link_in_a_title_cannot_become_a_javascript_url(to_html):
+    for page in showing_the_title(pages_for(title=JS_LINK)):
+        rendered = to_html(page)
+        assert "javascript:" not in markup(rendered)
+        assert JS_LINK in reading(rendered)
+
+
+def test_a_title_that_opens_with_a_block_marker_stays_a_title(to_html):
+    """The code's own heading is the only one a code page has; a title may not add a second."""
+    for title in ("# Not a heading.", "- Not a bullet.", "+ Nor this.", "3. Nor this one."):
+        rendered = to_html(pages_for(title=title)["e.input.format.f.md"])
+        assert rendered.count("<h1") == 1
+        assert "<ul>" not in rendered and "<ol>" not in rendered
+        assert title in reading(rendered)
+
+
+def test_a_backtick_in_an_arg_name_cannot_escape_its_code_span(to_html):
+    arg = 'a`{: onclick="alert(1)"}'
+    rendered = to_html(
+        pages_for(title="A title.", detail="Uses {a}.", args=(arg,))["e.input.format.f.md"]
+    )
+    assert "onclick" not in markup(rendered)
+    assert arg in reading(rendered)
+
+
+def test_a_repo_name_is_escaped_where_the_page_names_it(to_html):
+    pages = render(build_index([entry("e.input.format.f", "A title.", repo=SCRIPT)]))
+    rendered = to_html(pages["e.input.format.f.md"])
+    assert "<script" not in rendered
+    assert SCRIPT in reading(rendered)
+
+
+def test_escaping_still_displays_the_characters_the_registry_wrote(to_html):
+    """Escaping that mangles legitimate prose is its own bug: these are all real title material."""
+    title = "Use < instead of >, and \"quote\" it — 100% & a*b_c, {x}, [y], `z`, back\\slash."
+    for page in showing_the_title(pages_for(title=title)):
+        assert title in reading(to_html(page))
+
+
+def test_catalog_json_stays_valid_json_and_round_trips_what_the_registry_wrote():
+    pages = pages_for(title=SCRIPT, detail=f"{SCRIPT}\n```", hint=IMAGE, args=("a`b",))
+    document = json.loads(pages["catalog.json"])["codes"][0]
+    assert document["title"] == SCRIPT
+    assert document["hint"] == IMAGE
+    assert document["args"] == ["a`b"]
+
+
+def test_catalog_json_carries_no_markup_a_browser_could_be_talked_into_running():
+    """A JSON payload is only inert while it is read as JSON; keep the tag characters escaped."""
+    published = pages_for(title=SCRIPT, hint=IMAGE)["catalog.json"]
+    for character in ("<", ">", "&"):
+        assert character not in published

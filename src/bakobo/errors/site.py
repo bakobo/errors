@@ -8,13 +8,78 @@ a human: ``e.proof.`` has a page saying it is a pattern, and no page pretending 
 The published pages name the repo that declares a code and not the file it sits in. The catalog is
 public and the repos it reads are not, so a path and a line number are for the build, not for the
 web.
+
+A registry's prose — ``title``, ``detail``, ``hint``, the arg names — is a literal lifted out of
+another repo's source, and the renderer passes raw HTML through, so every place one of them becomes
+markup is escaped here and nowhere else (``this.i`` @twdcue2y). Escaping belongs at the sink because
+the catalog is a projection of what the registries literally say (@tjs63f): a title may contain
+``<``, ``&`` or a quote, and rewriting it on the way in would make the catalog disagree with the
+code that raises. One escape does not serve every sink, so there are three — :func:`_prose` for
+anything that lands in a paragraph, a list item or a table cell, :func:`_fence` for the detail
+template, whose contents the renderer already escapes, and :func:`_span` for an arg name.
 """
 
 from __future__ import annotations
 
+import html
 import json
+import re
 
 from .taxonomy import DESCRIPTORS, DISPOSITIONS, GRAMMAR, SORTERS
+
+MARKUP = ("\\", "`", "*", "_", "{", "}", "[", "]", "|")
+"""Characters that build markup rather than say something, once the HTML ones are entities.
+
+``{`` and ``}`` are here because ``attr_list`` is on: a trailing ``{: onclick="…" }`` becomes an
+event handler on the paragraph or the table cell. ``[`` and ``]`` are here because ``[x](javascript:…)``
+is a live link. ``|`` ends a table cell, and a backtick opens a code span that runs to the end of
+the block.
+"""
+
+_BLOCK = re.compile(r"\A(#{1,6}|[-+])(?=\s|\Z)")
+_ORDERED = re.compile(r"\A(\d+)([.)])(?=\s|\Z)")
+_BACKTICKS = re.compile(r"`+")
+
+
+def _prose(value) -> str:
+    """One registry string, safe in a paragraph, a list item or a table cell.
+
+    HTML first, since the renderer would otherwise pass a tag straight through; then the markup
+    characters, backslash-escaped rather than dropped so the page still reads what the registry
+    wrote; then the whitespace folded, because a newline in a title restructures the block it sits
+    in and a table row is one line. What is left is a block marker at the front, which would turn a
+    title into a heading or a bullet.
+    """
+    text = html.escape(str(value))
+    for character in MARKUP:
+        text = text.replace(character, "\\" + character)
+    text = " ".join(text.split())
+    return _ORDERED.sub(r"\1\\\2", _BLOCK.sub(r"\\\1", text))
+
+
+def _delimiter(body: str, least: int) -> str:
+    """A backtick run longer than any inside ``body``, so nothing in it can close the span."""
+    longest = len(max(_BACKTICKS.findall(body), key=len, default=""))
+    return "`" * max(least, longest + 1)
+
+
+def _fence(value) -> list[str]:
+    """The detail template as a code block nothing inside it can break out of.
+
+    Not HTML-escaped: the renderer escapes a code block's contents itself, and escaping here too
+    would show a reader ``&lt;`` where the template says ``<``. The only way out of a fence is a
+    longer one, so the fence is longer than anything in the body.
+    """
+    body = str(value)
+    ticks = _delimiter(body, 3)
+    return [ticks, body, ticks]
+
+
+def _span(value) -> str:
+    """One arg name as a code span, delimited so a backtick in it cannot end the span early."""
+    text = str(value)
+    ticks = _delimiter(text, 1)
+    return f"{ticks} {text} {ticks}"
 
 DISPOSITION_SENTENCE = {
     "f": "Retrying the same thing changes nothing.",
@@ -45,7 +110,7 @@ def _link(code: str) -> str:
 
 def _origins(document: dict) -> str:
     repos = sorted({origin["repo"] for origin in document["origins"]})
-    return " and ".join(f"**{repo}**" for repo in repos)
+    return " and ".join(f"**{_prose(repo)}**" for repo in repos)
 
 
 def _code_page(document: dict) -> str:
@@ -54,7 +119,7 @@ def _code_page(document: dict) -> str:
     lines = [
         f"# `{code}`",
         "",
-        document["title"],
+        _prose(document["title"]),
         "",
         DISPOSITION_SENTENCE[document["disposition"]],
         "",
@@ -64,13 +129,11 @@ def _code_page(document: dict) -> str:
         lines += [
             "## What a response says",
             "",
-            "```",
-            document["detail"],
-            "```",
+            *_fence(document["detail"]),
             "",
         ]
         if document["args"]:
-            named = ", ".join(f"`{name}`" for name in document["args"])
+            named = ", ".join(_span(name) for name in document["args"])
             lines += [
                 f"The placeholders are filled from {named}, which travel positionally in the "
                 f"`args` member of the response.",
@@ -78,7 +141,7 @@ def _code_page(document: dict) -> str:
             ]
 
     if document["hint"]:
-        lines += ["## What to do", "", document["hint"], ""]
+        lines += ["## What to do", "", _prose(document["hint"]), ""]
 
     lines += [
         "## Where it sits",
@@ -133,7 +196,7 @@ def _prefix_page(prefix: str, documents: list[dict]) -> str:
     lines += ["## Codes under this prefix", ""]
     if documents:
         lines += [
-            f"- {_link(d['code'])} — {d['title']}" for d in documents
+            f"- {_link(d['code'])} — {_prose(d['title'])}" for d in documents
         ]
     else:
         lines.append("No codes have been minted under this prefix yet.")
@@ -161,7 +224,7 @@ def _home_page(documents: list[dict]) -> str:
         f"| [`e.{name}.`](/e.{name}./) | {DESCRIPTORS[name].obstacle} |" for name in DESCRIPTORS
     ]
     lines += ["", f"## Every code ({len(documents)})", "", "| Code | Title |", "|---|---|"]
-    lines += [f"| {_link(d['code'])} | {d['title']} |" for d in documents]
+    lines += [f"| {_link(d['code'])} | {_prose(d['title'])} |" for d in documents]
     lines.append("")
     return "\n".join(lines)
 
@@ -182,13 +245,23 @@ def _not_found_page() -> str:
 
 
 def _published(index: dict) -> str:
-    """The machine-readable catalog, with the build's file paths and line numbers left out."""
+    """The machine-readable catalog, with the build's file paths and line numbers left out.
+
+    JSON carries its own escaping, so this was never the sink the pages were: whatever a registry
+    wrote, ``json.dumps`` produces a valid document and a browser asked for ``application/json``
+    runs none of it. The three tag characters are escaped anyway, as ``\\u003c`` and friends, which
+    decode back to exactly what the registry wrote — so the file is still inert if it is ever served
+    under the wrong content type, or read into a ``<script>`` block by a consumer.
+    """
     codes = []
     for document in index["codes"]:
         published = {key: value for key, value in document.items() if key != "origins"}
         published["repos"] = sorted({origin["repo"] for origin in document["origins"]})
         codes.append(published)
-    return json.dumps({"codes": codes}, indent=2) + "\n"
+    text = json.dumps({"codes": codes}, indent=2)
+    for character, escape in (("<", "\\u003c"), (">", "\\u003e"), ("&", "\\u0026")):
+        text = text.replace(character, escape)
+    return text + "\n"
 
 
 def render(index: dict) -> dict[str, str]:

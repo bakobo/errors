@@ -250,6 +250,38 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         mitigation is that our own contribution is markdown plus a generator, and the pages are
         regenerable against a different renderer.
 
+    Registry prose is escaped where it becomes markup, never on the way in = ++escaping decision:
+      id: twdcue2y
+      why: >
+        title, detail and hint are literals lifted from every repo in the corpus and interpolated
+        straight into the published markdown, and the renderer passes raw HTML through, so a <script>
+        in any of them ran on errors.bakobo.com. That is stored XSS reachable by anyone who can land
+        an error code anywhere in the fleet, and the blast radius is the whole public catalog, not
+        the one page. Chose escaping at each sink over sanitising entries as they are extracted:
+        @tjs63f makes the catalog a projection of what the registries literally say, and a value
+        rewritten on the way in would make the catalog disagree with the code that raises, which is
+        the one thing this repo exists to avoid. A title may legitimately contain `<`, `&` or a
+        quote — "Use < instead of >" is a real title this must still display correctly. Rejected a
+        sanitising pass over the rendered HTML too, which would put a second parser and an allowlist
+        into the build to undo damage this generator need not do in the first place. Each sink is
+        escaped for what it actually is, because one escape is wrong in at least one of them: prose
+        and table cells are HTML-escaped and then backslash-escaped for the markdown this site's
+        extension set makes dangerous (attr_list turns a trailing `{: onclick="…" }` into an event
+        handler on the cell, `[x](javascript:…)` is a live link, and a bare `|` truncates a row);
+        detail keeps its fenced block, whose contents the renderer already escapes, and gets a fence
+        longer than any backtick run inside it, since HTML-escaping there would double-escape and
+        show a reader `&lt;` where the template says `<`; arg names get a code span delimited the
+        same way. Tradeoff accepted, and visible on 42 of 532 pages today: a registry's prose is no
+        longer read as markdown, so a hint that writes `witness <url>` now shows its backticks
+        instead of setting the span in code. That is the right way round — the hint is a literal a
+        CLI also prints, where the backticks are characters and not formatting, and the site was
+        interpreting them by accident — but it is a change to what a reader sees, not only to the
+        generated source. The other cost is standing: every future interpolation in site.py is a
+        sink someone has to remember, which is why the escaping tests render each page through the
+        real extension set read from zensical.toml rather than asserting on the markdown. And this
+        closes the injection, not the class: the site still serves no Content-Security-Policy, so a
+        sink that escapes wrong has nothing behind it (tick ~3mcl).
+
     The package targets Python 3.14 = constraint:
       id: gjt4y3
       why: >

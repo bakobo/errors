@@ -238,6 +238,30 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         and tefa, which are private repos for an unlaunched product, and GitHub Pages on the free org
         plan requires this repo to be public for that to work.
 
+    The corpus credential is probed before use, and the probe decides its own retryability = decision:
+      id: ybxap2u7
+      why: >
+        The corpus repos are private and this one is public, so every publish depends on a
+        short-lived App token, and a token that cannot read one repo looks from inside the extractor
+        exactly like a repo that declares no codes. Chose a probe that reads all three remotes before
+        any of them is checked out, over letting the checkout steps report it: a missing checkout is
+        the one failure this pipeline must not mistake for a catalog that shrank, since a catalog
+        missing a repo's codes would publish as though those codes did not exist. But a single probe
+        is not enough, which is what 2026-09-21 established — the scheduled publish went red on a 404
+        reading bakobo/heti 0.6s after the token was minted, and a manual re-run hours later passed
+        all three repos with nothing changed: heti unpushed since 09-17, the App still holding
+        contents:read, and a token naming a repo outside its installation would have failed to mint
+        rather than reaching the probe. So the probe retries, and on its last failure it asks the
+        token what it is entitled to (`GET /installation/repositories`) rather than guessing. That
+        question is what makes the disposition computed instead of assumed: a repo present in the
+        token's own list that still will not read is retryable, a repo absent from it is final and
+        names its fix, and a list that could not be read is reported as the unknown it is. Chose this
+        over pinning either disposition, because the standard's retryability token is a promise to an
+        operator — `.f` on a transient 404 tells them not to retry the thing a retry fixes, and `.r`
+        on a revoked grant sends them round a loop that cannot close. Tradeoff: the probe now costs
+        an API call on the failure path and roughly thirty seconds before it gives up, and it can
+        still be wrong about a GitHub outage long enough to outlast the retries.
+
     Zensical renders the site = decision:
       id: 5fi4fd
       why: >

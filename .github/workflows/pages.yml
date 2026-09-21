@@ -55,14 +55,60 @@ jobs:
             dev
 
       # Isolates "the credential is broken" from "the catalog is broken", which the extractor alone
-      # cannot distinguish — it would just report a missing checkout.
+      # cannot distinguish — it would just report a missing checkout (this.i @ybxap2u7).
+      #
+      # IT RETRIES, because one read cannot distinguish those two either. On 2026-09-21 the first
+      # read of bakobo/heti came back 404 six-tenths of a second after the token was minted and
+      # turned the scheduled publish red; a manual re-run hours later passed all three repos with
+      # nothing changed — heti unpushed since the 17th, the App still holding contents:read, and a
+      # token naming a repo outside its installation would have failed to mint rather than reaching
+      # this step. A single 404 here is therefore evidence of nothing.
+      #
+      # AND THE DISPOSITION IS COMPUTED, the same rule copilot-review-gate.yml follows: when the
+      # retries are spent the token is asked what it is actually entitled to, which answers the
+      # question a 404 cannot. Present in the token's own list and still unreadable is retryable;
+      # absent from it is final and has a fix; a list that could not be read is neither, and says so.
       - name: Verify the token reaches every repo in the corpus
         env:
           TOKEN: ${{ steps.corpus-reader.outputs.token }}
         run: |
+          set -uo pipefail
+
+          # stdout only: git writes its diagnostics to stderr, and a probe that hides the reason for
+          # the last failure would be reporting a verdict without its evidence.
+          readable() {
+            git ls-remote "https://x-access-token:${TOKEN}@github.com/bakobo/$1" HEAD > /dev/null
+          }
+
+          # The endpoint an installation token may ask about itself. Our token is scoped to the three
+          # repos named above, so this lists exactly the grants the probe is testing.
+          granted() {
+            curl -sS --fail-with-body \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              'https://api.github.com/installation/repositories?per_page=100' \
+              | jq -r '.repositories[].full_name'
+          }
+
           for repo in heti tefa dev; do
-            git ls-remote "https://x-access-token:${TOKEN}@github.com/bakobo/${repo}" HEAD \
-              > /dev/null || { echo "The App token cannot read bakobo/${repo}."; exit 1; }
+            attempt=1
+            until readable "$repo"; do
+              if [ "$attempt" -ge 5 ]; then
+                if ! entitled=$(granted); then
+                  echo "::error::[e.env.corpus.unreadable.r] The App token cannot read bakobo/${repo}, and asking the token what it may read failed too (its error is above), so whether the grant is gone or GitHub is having a moment is unknown. This step will not guess; run it again, and if it keeps failing check the Bakobo Dependency Reader installation."
+                  exit 1
+                fi
+                if ! printf '%s\n' "$entitled" | grep -qx "bakobo/${repo}"; then
+                  echo "::error::[e.env.corpus.unreadable.f] The App token is not entitled to bakobo/${repo} — it is absent from the token's own repository list, which holds: ${entitled//$'\n'/, }. Retrying changes nothing. Add bakobo/${repo} to the Bakobo Dependency Reader installation, or drop it from corpus.toml and from the checkout steps below."
+                  exit 1
+                fi
+                echo "::error::[e.env.corpus.unreadable.r] The App token is entitled to bakobo/${repo} and still could not read it after 5 attempts spread over ~20s (the read errors are above). The grant is intact, so this is GitHub rather than the installation; run it again."
+                exit 1
+              fi
+              sleep "$((attempt * 2))"
+              attempt=$((attempt + 1))
+            done
           done
 
       - name: Check out heti

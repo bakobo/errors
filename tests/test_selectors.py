@@ -9,7 +9,7 @@ forgotten trailing dot, and a disposition smuggled into a class test.
 
 import pytest
 
-from bakobo.errors import ErrorCode, is_a, is_like
+from bakobo.errors import ErrorCode, is_like
 
 DEEP = ErrorCode("e.state.conflict.record.head.f", "Another writer moved the head.")
 SHALLOW = ErrorCode("e.env.db.r", "The database did not answer.")

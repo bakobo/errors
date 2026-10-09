@@ -78,7 +78,11 @@ This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md). Report unac
 
 **No `reviews/` directory.** Bakobo runs adversarial review panels over its repos and keeps the output permanently, but for a public repo that evidence lives in a private archive rather than in the tree — a security review is a map of a running system's weak points, and publishing one helps the wrong reader most. Its absence is not an absence of review.
 
-**`AGENTS.md` links to a repository you cannot open.** It points at `bakobo/dev`, which is private. Everything in it that governs *your* contribution is restated in this file; if you find a rule enforced by CI that is not explained here, that is our bug — open an issue and we will fix this document.
+**`AGENTS.md` links to a repository you cannot open.** It points at `bakobo/dev`, which is private. The rules in it that affect a contribution here are restated in this file, including the two below; if you find a rule enforced by CI that is not explained here, that is our bug — open an issue and we will fix this document.
+
+**Generated pages never show where a code lives.** This repo is public and most of the repos it reads are private. A catalog page may name the repo that declares a code, but never its file path or line number.
+
+**Input is bounded before it is trusted.** Check size, then shape, then meaning, in that order. Nothing crosses a boundary unbounded, and every kind of input comes in through a named entry point. A test keeps that list of entry points complete, so a new input path needs a test as well.
 
 **Commits with no `Co-Authored-By` trailer on AI-assisted work.** Deliberate. The DCO wants a sign-off for each author, and a tool cannot sign off, so the trailer would leave an author in the chain who certified nothing.
 

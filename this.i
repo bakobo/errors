@@ -238,6 +238,23 @@ Publish every Bakobo error code as a catalog derived from source = goal:
         and tefa, which are private repos for an unlaunched product, and GitHub Pages on the free org
         plan requires this repo to be public for that to work.
 
+    The code and prose are open source under Apache-2.0 = decision:
+      id: ob537vzg
+      why: >
+        Daniel's call, 2026-10-09, superseding the published-but-not-open posture this repo held
+        since @vrdqup. Bakobo is preparing a set of repos for donation to the KERI Foundation, and
+        six of them import this package (heti, heti-wallet, merti, did-webs, webvh-gate,
+        arf-interop); none of them can be given away while a dependency reserves all rights.
+        pyproject already declared Apache-2.0, so the grant also ends a contradiction between the
+        manifest and COPYRIGHT.md. Chose Apache-2.0, the license dev/standards/oss-posture.md names
+        for code, over keeping the package private-by-license and vendoring it into each donated
+        repo, because a second copy of the matcher would drift from the first at exactly the edge
+        cases that decide handling (@niawr3). COPYRIGHT.md is kept, rewritten to state the grant and
+        what it excludes (vendored files, the Bakobo marks, published facts), because Daniel asked
+        for it and because the exclusions are worth stating. Tradeoff accepted: the error machinery
+        and catalog generator are now reusable by anyone, including competitors, which costs nothing
+        that a catalog anyone can already read had not given away.
+
     The corpus credential is probed before use, and the probe decides its own retryability = decision:
       id: ybxap2u7
       why: >

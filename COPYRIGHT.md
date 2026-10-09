@@ -1,21 +1,17 @@
 # Copyright
 
-Copyright © 2026 Bakobo LLC. **All rights reserved.**
+Copyright © 2026 Bakobo LLC.
 
 This repository holds the shared Bakobo error-code machinery and the catalog extracted from every registry, published as [errors.bakobo.com](https://errors.bakobo.com) so that an error code a Bakobo system hands you resolves to an explanation.
 
-## What that means
+## Licence
 
-This repository is public so that anyone can **read** it — check what we publish, see how it is built, point out where it is wrong, and report a security problem. That is the whole reason it is not private.
-
-It is **not** open source, and no licence is granted. Publishing source is not the same as licensing it, and this file exists so the distinction is stated rather than left to be inferred from a missing `LICENSE`. You may not copy, modify, redistribute or build on this code without written permission.
-
-Asking is fine. If you want to use something here, open an issue or email `info@bakobo.com` and say what for.
+The code and prose in this repository are licensed under the [Apache License, Version 2.0](LICENSE). You may use, copy, modify and redistribute them under its terms, which include keeping this notice and the licence with any copy and stating where you changed a file. `LICENSE` is the operative text; this file only says who holds the copyright and what the grant covers.
 
 ## Things that are not covered by this
 
 **Anything vendored from someone else** keeps its own licence, which travels with it. Where that applies, the terms are recorded next to the file rather than overridden here.
 
-**Bakobo's open-source repositories are genuinely open**, under the licence each one states — see `LICENSE` in those. This notice governs this repository alone, and says nothing about the others.
+**The Bakobo name and marks.** Apache-2.0 §6 grants no right to use them, except to describe where the work came from. A fork should go by its own name.
 
-**Facts are not ours.** Identifiers, endpoints, schemas and other published data are here to be used; the restriction is on the code and prose that produce them.
+**Facts are not ours.** Identifiers, endpoints, error codes and other published data are there to be used, and neither this notice nor the licence restricts them.

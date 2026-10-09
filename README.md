@@ -57,3 +57,7 @@ uv run pytest
 ```
 
 Coverage is enforced at 100% branch coverage; the run fails below it.
+
+## License
+
+Apache-2.0 — see [`LICENSE`](LICENSE) and [`COPYRIGHT.md`](COPYRIGHT.md).
